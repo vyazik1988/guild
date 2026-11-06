@@ -1337,15 +1337,15 @@ function openScene(kind,after){
   s._c=c;
   s.querySelector(".stage-dim").animate([{opacity:0},{opacity:1}],{duration:D(300),fill:"forwards"});
   renderSceneCtl();
-  animCam(cam,home,c,D(BOOKK(kind)?420:300)).then(()=>stage===s?sceneIn(s):null)
+  animCam(cam,home,c,D(BOOKK(kind)?260:300)).then(()=>stage===s?sceneIn(s):null)
     .then(()=>{if(stage!==s)return;s.querySelector(".stage-ctl").classList.add("on");if(after)after();else{const b=s.querySelector(".ovl button,.ovl textarea,[data-bp-back]");b&&b.focus({preventScroll:true})}}).catch(()=>{});
 }
 function openBookAnim(s,book,closedT,openT){
   const cover=book.querySelector(".cover"),n=book.classList.contains("single");
   book.classList.remove("shut");
-  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:closedT},{transform:openT}],{duration:D(500),easing:ease,fill:"forwards"});
-  const flip=n?cover.animate([{transform:"rotateY(0deg)",opacity:1},{transform:"rotateY(-115deg)",opacity:0}],{duration:D(500),easing:ease,fill:"forwards"}).finished
-    :flipEl(cover,0,-180,cover.querySelector(".cfront"),cover.querySelector(".cback"),D(500));
+  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:closedT},{transform:openT}],{duration:D(300),easing:ease,fill:"forwards"});
+  const flip=n?cover.animate([{transform:"rotateY(0deg)",opacity:1},{transform:"rotateY(-115deg)",opacity:0}],{duration:D(300),easing:ease,fill:"forwards"}).finished
+    :flipEl(cover,0,-180,cover.querySelector(".cfront"),cover.querySelector(".cback"),D(300));
   return Promise.all([slide.finished,flip]).then(()=>{if(stage!==s)return;book.classList.remove("closed");cover.style.display="none"});
 }
 function closeBookAnim(s,book,closedT,openT){
@@ -1353,10 +1353,10 @@ function closeBookAnim(s,book,closedT,openT){
   if(!n)cb.innerHTML=book.querySelector(".pl").innerHTML;
   book.getAnimations().forEach(a=>a.cancel());cover.getAnimations().forEach(a=>a.cancel());
   book.style.transform="";book.classList.add("closed");cover.style.display="";
-  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:openT},{transform:closedT}],{duration:D(420),easing:ease,fill:"forwards"});
+  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:openT},{transform:closedT}],{duration:D(260),easing:ease,fill:"forwards"});
   let flip;
-  if(n)flip=cover.animate([{transform:"rotateY(-115deg)",opacity:0},{transform:"rotateY(0deg)",opacity:1}],{duration:D(420),easing:ease,fill:"forwards"}).finished;
-  else{cb.style.visibility="visible";cf.style.visibility="hidden";flip=flipEl(cover,-180,0,cb,cf,D(420))}
+  if(n)flip=cover.animate([{transform:"rotateY(-115deg)",opacity:0},{transform:"rotateY(0deg)",opacity:1}],{duration:D(260),easing:ease,fill:"forwards"}).finished;
+  else{cb.style.visibility="visible";cf.style.visibility="hidden";flip=flipEl(cover,-180,0,cb,cf,D(260))}
   return Promise.all([slide.finished,flip]).then(()=>book.classList.add("shut"));
 }
 function sceneIn(s){
@@ -1395,7 +1395,7 @@ function closeScene(){
   let p=Promise.resolve();
   if(book&&BOOKK(s._kind)){
     p=closeBookAnim(s,book,"translate("+(-s._shift)+"px,0px)","translate(0px,0px)");
-    veil.animate([{opacity:.8},{opacity:0}],{duration:D(420),fill:"forwards"});
+    veil.animate([{opacity:.8},{opacity:0}],{duration:D(260),fill:"forwards"});
   }else if(book&&s._from){
     p=closeBookAnim(s,book,s._closedT,"translate(0px,0px) scale(1) rotateX(0deg)")
       .then(()=>book.animate([{transform:s._closedT},{transform:s._from}],{duration:D(320),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished);
@@ -1403,7 +1403,7 @@ function closeScene(){
   p.catch(()=>{}).then(()=>{ov.innerHTML="";hideInCam(s,false);
       veil.animate([{opacity:+getComputedStyle(veil).opacity||0},{opacity:0}],{duration:D(180),fill:"forwards"});
       s.querySelector(".stage-dim").animate([{opacity:1},{opacity:0}],{duration:D(320),fill:"forwards"});
-      return animCam(cam,s._c,camHome(),D(BOOKK(s._kind)?400:300))})
+      return animCam(cam,s._c,camHome(),D(BOOKK(s._kind)?260:300))})
     .catch(()=>{}).finally(()=>{s.remove();if(stage===s)stage=null;document.documentElement.style.overflow="";
       const h=document.querySelector('#hall [data-open="'+({table:"advs",journal:"ledger",status:"guild",archive:"archive"}[s._kind])+'"]');if(h)try{h.focus({preventScroll:true})}catch(e){}});
 }
@@ -1543,8 +1543,8 @@ function turnTo(sid,back){
   else if(!back){leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.right)+'</div><div class="cf pg lk">'+pageWrap(nw.left)+'</div>';pr.innerHTML=pageWrap(nw.right)}
   else{leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.left)+'</div><div class="cf pg lk">'+pageWrap(nw.right)+'</div>';pl.innerHTML=pageWrap(nw.left)}
   book.appendChild(leaf);
-  const run=nar?leaf.animate([{transform:"rotateY(0deg)",opacity:1},{transform:back?"rotateY(100deg)":"rotateY(-100deg)",opacity:0}],{duration:D(380),easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished
-    :flipEl(leaf,0,back?180:-180,leaf.querySelector(".lf"),leaf.querySelector(".lk"),D(520));
+  const run=nar?leaf.animate([{transform:"rotateY(0deg)",opacity:1},{transform:back?"rotateY(100deg)":"rotateY(-100deg)",opacity:0}],{duration:D(230),easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished
+    :flipEl(leaf,0,back?180:-180,leaf.querySelector(".lf"),leaf.querySelector(".lk"),D(300));
   run.catch(()=>{})
     .then(()=>{if(!nar){if(back)pr.innerHTML=pageWrap(nw.right);else pl.innerHTML=pageWrap(nw.left)}leaf.remove();s._turning=false;renderBookSpread(false)});
 }
