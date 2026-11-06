@@ -792,7 +792,64 @@ const JOURNAL_COVER='<svg viewBox="0 0 64 88" preserveAspectRatio="none" aria-hi
   '<rect x="12" y="7" width="45" height="74" rx="1" fill="none" stroke="#c9a24a" stroke-width="1.2"/><path d="M12 81l6-9 6 9zM57 81l-6-9-6 9z" fill="#c9a24a"/>'+
   '<text x="34.5" y="46.8" text-anchor="middle" font-family="Russo One" font-size="8.4" letter-spacing="1" fill="#1a0a06">ЖУРНАЛ</text><text x="34.5" y="46" text-anchor="middle" font-family="Russo One" font-size="8.4" letter-spacing="1" fill="#e6c88a">ЖУРНАЛ</text>'+
   '<text x="34.5" y="55" text-anchor="middle" font-family="Russo One" font-size="5" letter-spacing="1" fill="#c9a24a">смены</text></svg>';
+/* ---------- time of day: sky and light follow real Moscow time ---------- */
+const MSK_LAT=55.7558,MSK_LON=37.6173,MSK_OFF=3*36e5,RAD=Math.PI/180;
+function sunElev(ms){
+  const d=ms/864e5+2440587.5-2451545,g=(357.529+.98560028*d)*RAD,q=280.459+.98564736*d,
+    L=(q+1.915*Math.sin(g)+.02*Math.sin(2*g))*RAD,e=(23.439-3.6e-7*d)*RAD,
+    ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L)),dec=Math.asin(Math.sin(e)*Math.sin(L)),
+    gmst=((18.697374558+24.06570982441908*d)%24+24)%24,H=(gmst*15+MSK_LON)*RAD-ra,la=MSK_LAT*RAD;
+  return Math.asin(Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(H))/RAD;
+}
+function todNow(){
+  let ms=Date.now();
+  try{const p=new URLSearchParams(location.search),t=p.get("time"),dt=p.get("date");
+    if(t||dt){const day=dt&&/^\d{4}-\d{2}-\d{2}$/.test(dt)?dt:new Date(ms+MSK_OFF).toISOString().slice(0,10);
+      const m=/^(\d{1,2}):(\d{2})$/.exec(t||"")||[0,new Date(ms+MSK_OFF).getUTCHours(),new Date(ms+MSK_OFF).getUTCMinutes()];
+      ms=Date.parse(day+"T00:00:00Z")-MSK_OFF+(+m[1]*60+ +m[2])*6e4}}catch(e){}
+  return ms;
+}
+const mixC=(a,b,t)=>{t=Math.max(0,Math.min(1,t));const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=h(a),B=h(b);
+  return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("")};
+const sstep=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+function timeOfDay(){
+  const ms=todNow(),el=sunElev(ms),mid=Date.parse(new Date(ms+MSK_OFF).toISOString().slice(0,10)+"T00:00:00Z")-MSK_OFF;
+  let rise=null,set=null,noonEl=-90;
+  for(let m=0,prev=sunElev(mid);m<=1440;m+=5){const v=sunElev(mid+m*6e4);if(v>noonEl)noonEl=v;
+    if(prev<-.833&&v>=-.833&&rise==null)rise=mid+m*6e4;if(prev>=-.833&&v<-.833&&rise!=null)set=mid+m*6e4;prev=v}
+  const d=sstep(-7,6,el),w=Math.max(0,1-Math.abs(el-1)/8),f=rise&&set?(ms-rise)/(set-rise):.5;
+  return{el,d,w,f,noonEl,
+    top:mixC(mixC("#0a1330","#3d7cc9",d),"#3a3f86",w*.7),
+    bot:mixC(mixC("#1d3366","#a8d2f0",d),"#f39a5a",w*.9),
+    hill:mixC(mixC("#0b1226","#5b7a8a",d),"#3a2a4a",w*.6)};
+}
+function todSky(T){
+  const sunUp=T.el>-3,sx=470-170*Math.max(0,Math.min(1,T.f)),sy=232-Math.max(0,T.el)/Math.max(10,T.noonEl)*140,
+    nf=1-T.d;
+  let h='<clipPath id="winclip"><rect x="300" y="70" width="180" height="170"/></clipPath><g clip-path="url(#winclip)">'+
+    '<rect x="300" y="70" width="180" height="170" fill="url(#skyg)"/>';
+  if(nf>.05)h+='<g opacity="'+(nf*nf).toFixed(2)+'"><circle cx="330" cy="100" r="1.5" fill="#fff"/><circle cx="360" cy="130" r="1.2" fill="#fff"/><circle cx="410" cy="160" r="1.4" fill="#fff"/><circle cx="460" cy="150" r="1.1" fill="#fff"/><circle cx="315" cy="140" r="1" fill="#fff"/><circle cx="372" cy="88" r="1.1" fill="#fff"/></g>'+
+    '<circle cx="440" cy="110" r="16" fill="#eaf3ff" opacity="'+(.9*nf).toFixed(2)+'"/>';
+  if(T.d>.05)h+='<g fill="#fff" opacity="'+(.85*T.d).toFixed(2)+'"><ellipse cx="335" cy="104" rx="22" ry="7"/><ellipse cx="350" cy="99" rx="14" ry="8"/><ellipse cx="438" cy="134" rx="26" ry="6"/><ellipse cx="452" cy="129" rx="13" ry="7"/></g>';
+  if(sunUp)h+='<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="26" fill="#ffd98a" opacity="'+(.35*sstep(-3,4,T.el)).toFixed(2)+'"/>'+
+    '<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="13" fill="'+mixC("#ff8a3a","#fff3c2",sstep(0,15,T.el))+'" opacity="'+sstep(-3,1,T.el).toFixed(2)+'"/>';
+  h+='<path d="M300 210L330 190 350 200 380 180 410 196 440 186 480 205V240H300Z" fill="'+T.hill+'"/></g>';
+  return h;
+}
+function todLight(T){
+  /* daylight beam from the window and a warm/soft overall tint; pointer-events off so nothing gets blocked */
+  const b=(.32*T.d).toFixed(3),glow=(.28*T.d+.12*T.w).toFixed(3);
+  return '<g pointer-events="none" aria-hidden="true">'+
+    (T.d>.02?'<polygon points="306,256 474,256 700,566 336,566" fill="url(#beamg)" opacity="'+b+'" style="mix-blend-mode:screen"/>':'')+
+    (T.d>.02?'<rect width="1200" height="680" fill="#6e5236" opacity="'+(.34*T.d).toFixed(3)+'" style="mix-blend-mode:screen"/>':'')+
+    (+glow>.01?'<rect width="1200" height="680" fill="'+mixC("#fff1d6","#ffb070",T.w)+'" opacity="'+glow+'" style="mix-blend-mode:soft-light"/>':'')+
+    (T.w>.05&&T.d<.9?'<rect width="1200" height="680" fill="#ff8a40" opacity="'+(.08*T.w).toFixed(3)+'" style="mix-blend-mode:overlay"/>':'')+
+  '</g>';
+}
+setInterval(()=>{try{if(!stage)drawHall()}catch(e){}},60000);
+
 function drawHall(){
+  const TOD=timeOfDay();
   const fresh=quests.filter(q=>q.status==="board").sort(sortQ);
   const work=quests.filter(q=>q.status==="active").sort(sortQ);
   const free=advs.filter(a=>activeOf(a).length===0);
@@ -961,9 +1018,7 @@ function drawHall(){
 
   /* ---- window, banner, door, lanterns ---- */
   const windowG='<rect x="286" y="54" width="208" height="8" rx="4" fill="#5a3a20"/>'+
-    '<rect x="294" y="64" width="192" height="182" fill="#120b06"/><rect x="300" y="70" width="180" height="170" fill="url(#nightwin)"/>'+
-    '<circle cx="440" cy="110" r="16" fill="#eaf3ff" opacity=".9"/><circle cx="330" cy="100" r="1.5" fill="#fff"/><circle cx="360" cy="130" r="1.2" fill="#fff"/><circle cx="410" cy="160" r="1.4" fill="#fff"/><circle cx="460" cy="150" r="1.1" fill="#fff"/>'+
-    '<path d="M300 210L330 190 350 200 380 180 410 196 440 186 480 205V240H300Z" fill="#0b1226"/>'+
+    '<rect x="294" y="64" width="192" height="182" fill="#120b06"/>'+todSky(TOD)+
     '<line x1="390" y1="70" x2="390" y2="240" stroke="#3d2816" stroke-width="8"/><line x1="300" y1="155" x2="480" y2="155" stroke="#3d2816" stroke-width="8"/>'+
     '<rect x="300" y="70" width="180" height="170" fill="none" stroke="#4a311c" stroke-width="10"/>'+
     '<rect x="284" y="240" width="212" height="14" fill="#5a3a20" '+OL+'/>'+
@@ -982,7 +1037,8 @@ function drawHall(){
 
   $("#hall").innerHTML=
   '<defs><radialGradient id="lamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>'+
-  '<linearGradient id="nightwin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1330"/><stop offset="1" stop-color="#1d3366"/></linearGradient>'+
+  '<linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+TOD.top+'"/><stop offset="1" stop-color="'+TOD.bot+'"/></linearGradient>'+
+  '<linearGradient id="beamg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+mixC("#fff4d8","#ffb070",TOD.w)+'" stop-opacity="0"/><stop offset=".12" stop-color="'+mixC("#fff4d8","#ffb070",TOD.w)+'" stop-opacity=".85"/><stop offset="1" stop-color="#fff4d8" stop-opacity="0"/></linearGradient>'+
   '<linearGradient id="wallg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22160e"/><stop offset="1" stop-color="#1c120b"/></linearGradient>'+
   '<linearGradient id="plank" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a1b12"/><stop offset=".5" stop-color="#34241a"/><stop offset="1" stop-color="#24170f"/></linearGradient>'+
   '<linearGradient id="floorg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1c11"/><stop offset="1" stop-color="#4a3220"/></linearGradient>'+
@@ -996,7 +1052,7 @@ function drawHall(){
   '<filter id="blur"><feGaussianBlur stdDeviation="8"/></filter>'+
   '<filter id="outline" x="-8%" y="-8%" width="116%" height="116%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="d"/><feFlood flood-color="#f2c14e"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'+
   wall+floor+
-  '<circle cx="230" cy="90" r="160" fill="url(#lamp)" class="flick"/><circle cx="840" cy="40" r="170" fill="url(#lamp)" class="flick" style="animation-delay:1.3s"/>'+
+  '<g opacity="'+(1-.65*TOD.d).toFixed(2)+'"><circle cx="230" cy="90" r="160" fill="url(#lamp)" class="flick"/><circle cx="840" cy="40" r="170" fill="url(#lamp)" class="flick" style="animation-delay:1.3s"/></g>'+
   lantern(230,72,0)+windowG+'<g transform="translate(-445 0)">'+banner+'</g>'+door+
   // board (hot)
   '<g class="hot" tabindex="0" role="button" data-open="board" aria-label="Доска заказов: '+fresh.length+' новых, '+work.length+' в работе">'+
@@ -1016,7 +1072,7 @@ function drawHall(){
   // adventurers' tables (hot)
   '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Столы авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
   corner+'</g>'+
-  counter+journal+shelves+guildShelf+archShelf;
+  counter+journal+shelves+guildShelf+archShelf+todLight(TOD);
 }
 
 /* ---------- Modals ---------- */
