@@ -370,6 +370,7 @@ hr.dash{border:none;border-top:2px dashed var(--line);margin:8px 0;width:100%}
 .leaf .lk,.cback{visibility:hidden}
 .bk-t td,.book .pg td{color:#2b2116}
 .pgin{height:100%;overflow-y:auto;padding:30px 28px 22px;display:flex;flex-direction:column;gap:10px}
+.book:not(.single) .pgin{zoom:var(--bkz,1);height:var(--pgh,100%)}
 .bk-h{font-family:var(--f-disp);font-size:18px;letter-spacing:.05em;color:#3a2a1a;border-bottom:1px solid #cdbb93;padding-bottom:6px}
 .bk-h.s{font-size:14px;margin-top:6px}.bk-h.c,.c{text-align:center}
 .bk-date b{display:block;font-family:var(--f-disp);font-weight:400;font-size:30px}.bk-date span{color:#6b5a40}
@@ -1511,9 +1512,10 @@ function bookCover(kind){
 }
 function buildBook(s){
   const kind=s._kind,ov=s.querySelector(".ovl"),nar=isNarrowBook();
-  const PW=Math.floor(nar?Math.min(innerWidth-28,460,(innerHeight-100)/BOOK_RATIO):Math.min(450,(innerWidth-48)/2,(innerHeight-100)/BOOK_RATIO)),H=Math.round(PW*BOOK_RATIO);
+  const PW=Math.floor(nar?Math.min(innerWidth-28,460,(innerHeight-100)/BOOK_RATIO):Math.min((innerWidth-64)/2,(innerHeight-88)/BOOK_RATIO)),H=Math.round(PW*BOOK_RATIO),
+    zk=nar?1:Math.max(1,PW/450);
   s._book={kind,sid:kind==="journal"?yesterday():kind==="status"?"main":"home"};
-  ov.innerHTML='<div class="book closed shut book-'+kind+(nar?" single":"")+'" style="width:'+(nar?PW:PW*2)+'px;height:'+H+'px"><div class="pg pl"></div><div class="pg pr"></div>'+
+  ov.innerHTML='<div class="book closed shut book-'+kind+(nar?" single":"")+'" style="width:'+(nar?PW:PW*2)+'px;height:'+H+'px;--bkz:'+zk.toFixed(4)+(nar?'':';--pgh:'+(H/zk).toFixed(2)+'px')+'"><div class="pg pl"></div><div class="pg pr"></div>'+
     '<div class="cover" style="width:'+PW+'px"><div class="cf cfront cv">'+bookCover(kind)+'</div><div class="cf cback pg"></div></div></div>';
   renderBookSpread(true);
 }
