@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Гильдия искателей приключений</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Russo+One&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: статус гильдии сверху, зал гильдии от лица менеджера за стойкой как главный экран, под ним навигация и заказы в работе; всё остальное открывается окнами Системы. */
+:root{
+  --night:#07090f; --panel:#0a1428; --panel2:#0f1d3a;
+  --sys:#4fb3ff; --sys-dim:#2a6fb0; --sys-glow:rgba(79,179,255,.35);
+  --fg:#dce8ff; --muted:#8197bd; --line:#1f3458;
+  --gold:#f2c14e; --danger:#ff5d72; --ok:#4fe0a6;
+  --r-e:#9aa8bf; --r-d:#5fd28f; --r-c:#4fb3ff; --r-b:#a77bff; --r-a:#ff9a4f; --r-s:#f2c14e;
+  --f-ui:"Exo 2","Segoe UI",system-ui,sans-serif;
+  --f-disp:"Russo One","Exo 2",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--night);color:var(--fg);margin:0}
+body{font-family:var(--f-ui);font-size:15px;line-height:1.5;min-height:100%;
+  background:radial-gradient(120% 60% at 50% 0%,#1a1630 0%,var(--night) 60%) fixed,var(--night)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--sys);outline-offset:2px}
+
+/* HUD */
+.hud{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;
+  border:1px solid var(--sys-dim);background:linear-gradient(180deg,rgba(15,29,58,.9),rgba(10,20,40,.9));
+  padding:12px 16px;border-radius:4px;box-shadow:0 0 24px var(--sys-glow),inset 0 0 18px rgba(79,179,255,.08)}
+.hud-lvl{display:flex;flex-direction:column;align-items:center;min-width:64px}
+.hud-lvl small{font-size:11px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.hud-lvl b{font-family:var(--f-num);font-size:30px;line-height:1;color:var(--sys);text-shadow:0 0 12px var(--sys-glow)}
+.hud-mid{min-width:0;display:flex;flex-direction:column;gap:6px}
+.hud-name{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hud-name h1{font-family:var(--f-disp);font-weight:400;font-size:20px;margin:0;letter-spacing:.04em}
+.hud-name span{color:var(--muted);font-size:13px}
+.xpbar{height:10px;border:1px solid var(--sys-dim);background:#06101f;position:relative;overflow:hidden}
+.xpbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--sys-dim),var(--sys));box-shadow:0 0 10px var(--sys);transition:width .6s}
+.xpmeta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:var(--f-num);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hud-rank{width:52px;height:52px;display:grid;place-items:center;border:2px solid currentColor;font-family:var(--f-disp);font-size:26px;transform:rotate(45deg)}
+.hud-rank span{transform:rotate(-45deg)}
+
+/* Hall scene */
+.hall{position:relative;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#120c08}
+.hall svg{display:block;width:100%;height:auto}
+.hot{cursor:pointer}
+.hot .hl{opacity:0;transition:opacity .2s}
+#hall .hot:hover .olt,#hall .hot:focus-visible .olt{filter:url(#outline)}
+#bellLayer{position:absolute;left:35%;bottom:calc(100% * 180 / 680);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5em;pointer-events:none;z-index:2;font-size:clamp(11px,1.5vw,18px)}
+.bub{position:relative;background:#fffaf0;color:#2b2116;border:2px solid #2b2116;border-radius:1em;padding:.35em .9em;font-style:italic;font-weight:700;white-space:nowrap;box-shadow:0 3px 0 rgba(0,0,0,.35);transition:opacity 1s linear;animation:bubIn .18s ease-out}
+.bub::after{content:"";position:absolute;left:50%;bottom:-.55em;width:.8em;height:.8em;background:#fffaf0;border-right:2px solid #2b2116;border-bottom:2px solid #2b2116;transform:translateX(-50%) rotate(45deg)}
+.bub.fade{opacity:0}
+@keyframes bubIn{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+#hall .bell .olt{transform-box:fill-box;transform-origin:50% 100%}
+#hall .bell.ring .olt{animation:ring .5s ease-out}
+@keyframes ring{0%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(3deg)}100%{transform:rotate(0)}}
+.cam .olt{filter:none!important}
+.hot:focus{outline:none}
+.hot:hover .stag rect,.hot:focus .stag rect{stroke:#9fd4ff}
+.stag text{font-family:var(--f-num);font-size:15px;letter-spacing:.1em;fill:var(--sys)}
+.glow{animation:gl 2.6s ease-in-out infinite}
+@keyframes gl{50%{opacity:.5}}
+.flick{animation:fl 4s ease-in-out infinite}
+@keyframes fl{30%{opacity:.85}60%{opacity:1}75%{opacity:.9}}
+.hallnav{display:flex;flex-wrap:wrap;gap:8px}
+.hud[hidden],.hallnav[hidden],.aqwin[hidden]{display:none!important}
+.wrap{box-sizing:border-box;min-height:100vh;min-height:100dvh;justify-content:center;max-width:calc(100vh * 1200 / 680);max-width:calc(100dvh * 1200 / 680);padding:0;gap:0}
+.wrap .hall{border:0;border-radius:0}
+body:has(.wrap .hall){background:linear-gradient(#1b120b 0 50%,#100a06 50% 100%)}
+.hallnav button{flex:1 1 150px}
+
+/* System buttons */
+.btn{border:1px solid var(--sys-dim);background:rgba(79,179,255,.08);padding:9px 14px;border-radius:3px;letter-spacing:.03em;transition:background .15s,box-shadow .15s}
+.btn:hover{background:rgba(79,179,255,.18);box-shadow:0 0 12px var(--sys-glow)}
+.btn.pri{background:var(--sys);color:#04101f;border-color:var(--sys);font-weight:700}
+.btn.pri:hover{background:#7cc7ff}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+.btn.warn{border-color:var(--danger);color:var(--danger);background:transparent}
+.btn.alert{border-color:var(--gold);color:var(--gold)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+.win{border:1px solid var(--sys-dim);background:rgba(10,20,40,.94);border-radius:4px;box-shadow:0 0 18px rgba(79,179,255,.12);min-width:0}
+.win-h{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.win-h .tag{font-family:var(--f-num);font-size:11px;letter-spacing:.14em;color:var(--sys);border:1px solid var(--sys-dim);padding:1px 6px;white-space:nowrap}
+.win-h h2{font-family:var(--f-disp);font-weight:400;font-size:17px;margin:0;letter-spacing:.04em;flex:1;min-width:0;overflow-wrap:anywhere}
+.win-b{padding:14px;display:flex;flex-direction:column;gap:12px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+h3.sec{margin:0;font-family:var(--f-num);font-size:12px;letter-spacing:.16em;color:var(--sys);font-weight:500;text-transform:uppercase}
+
+.state{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{font-family:var(--f-num);font-size:12px;padding:2px 8px;border:1px solid currentColor;border-radius:2px;white-space:nowrap}
+.pill.ok{color:var(--ok)} .pill.bad{color:var(--danger)} .pill.info{color:var(--sys)} .pill.gold{color:var(--gold)}
+textarea,input[type=text],input[type=number],input[type=date],select{width:100%;background:#050d1c;border:1px solid var(--line);border-radius:3px;padding:9px 10px}
+textarea{min-height:96px;resize:vertical}
+textarea:focus,input:focus,select:focus{border-color:var(--sys);outline:none;box-shadow:0 0 0 2px var(--sys-glow)}
+label.f,.fl{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+.items{display:flex;flex-direction:column;gap:6px}
+.item{display:grid;grid-template-columns:26px minmax(0,1fr) auto auto auto;gap:6px;align-items:center;border:1px solid var(--line);background:var(--panel2);padding:6px 8px;border-radius:3px;color:var(--fg)}
+.item:focus-within{border-color:var(--sys-dim)}
+.item .num{font-family:var(--f-num);font-size:12px;color:var(--sys);text-align:center}
+.item.isdone .num{color:var(--ok)}
+.item input{padding:7px 8px}
+.ib{width:30px;height:30px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:3px;line-height:1}
+.ib:hover:not(:disabled){border-color:var(--sys-dim);color:var(--fg)}
+.ib.rm:hover{border-color:var(--danger);color:var(--danger)}
+.ib:disabled{opacity:.3;cursor:default}
+.addi{align-self:flex-start}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1 1 140px;min-width:0}
+
+/* Quest rows */
+.qlist{display:flex;flex-direction:column;gap:8px}
+.q{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);background:var(--panel2);border-radius:3px;cursor:pointer;text-align:left;width:100%}
+.q:hover{border-color:var(--sys-dim)}
+.rk{width:30px;height:30px;display:grid;place-items:center;font-family:var(--f-disp);font-size:15px;border:1.5px solid currentColor;flex:none}
+.rk-E{color:var(--r-e)}.rk-D{color:var(--r-d)}.rk-C{color:var(--r-c)}.rk-B{color:var(--r-b)}.rk-A{color:var(--r-a)}.rk-S{color:var(--r-s)}
+.q-t{min-width:0}
+.q-t b{display:block;font-weight:600;overflow-wrap:anywhere}
+.q-t span{font-size:12px;color:var(--muted)}
+.mini{display:block;height:4px;background:#06101f;margin-top:5px;position:relative}
+.mini i{position:absolute;inset:0 auto 0 0;background:var(--sys)}
+.q-r{font-family:var(--f-num);font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.over{color:var(--danger)!important}
+.empty{border:1px dashed var(--line);padding:16px;text-align:center;color:var(--muted);border-radius:3px}
+
+/* Board modal: two columns */
+.board2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:640px){.board2{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.paper{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;background:#e9dfc6;color:#2b2116;border:none;border-radius:2px;padding:10px 12px 10px 14px;position:relative;box-shadow:0 2px 0 rgba(0,0,0,.35);transition:transform .15s}
+.paper:hover{transform:translateY(-2px) rotate(-.4deg)}
+.paper::before{content:"";position:absolute;top:-4px;left:50%;width:10px;height:10px;border-radius:50%;background:var(--pin,#c0392b);transform:translateX(-50%);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.paper b{font-weight:700;overflow-wrap:anywhere}
+.paper .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:#5b4a33}
+.paper .prk{font-family:var(--f-disp);font-size:13px;border:1.5px solid currentColor;padding:0 5px}
+.paper .pbar{height:4px;background:#cdbf9f;position:relative}
+.paper .pbar i{position:absolute;inset:0 auto 0 0;background:#2a6fb0}
+.paper .stamp{position:absolute;right:8px;top:8px;transform:rotate(8deg);border:2px solid #c0392b;color:#c0392b;font-family:var(--f-disp);font-size:11px;padding:1px 5px;letter-spacing:.06em}
+.paper .late{color:#b3261e;font-weight:700}
+
+/* Adventurers */
+.advs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.adv{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:start;text-align:left;width:100%;padding:10px;border:1px solid var(--line);background:var(--panel2);border-radius:3px}
+.adv:hover{border-color:var(--sys-dim)}
+.adv svg{width:56px;height:56px;display:block}
+.adv b{display:block;font-weight:700}
+.adv .cls{font-size:12px;color:var(--muted)}
+.adv .st{font-size:12px;margin-top:4px}
+.adv .lvl{font-family:var(--f-num);font-size:12px;color:var(--sys)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.stat{border:1px solid var(--line);padding:8px 10px;background:var(--panel2)}
+.stat small{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat b{font-family:var(--f-num);font-size:18px;font-variant-numeric:tabular-nums}
+.stat .bar{height:4px;background:#06101f;margin-top:4px;position:relative}
+.stat .bar i{position:absolute;inset:0 auto 0 0;background:var(--sys)}
+.advhead{display:grid;grid-template-columns:88px 1fr;gap:14px;align-items:center}
+.advhead svg{width:88px;height:88px}
+
+.bigbar{height:14px;border:1px solid var(--sys-dim);background:#06101f;position:relative}
+.bigbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--sys-dim),var(--sys));box-shadow:0 0 10px var(--sys)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.kv div{border:1px solid var(--line);padding:8px 10px;background:var(--panel2)}
+.kv small{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.kv b{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.check{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line)}
+.check input{width:18px;height:18px;margin-top:2px;accent-color:var(--sys);flex:none}
+.check span{overflow-wrap:anywhere}
+.check.done span{color:var(--muted);text-decoration:line-through}
+.hist{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;font-size:13px}
+.hist div{display:grid;grid-template-columns:auto auto 1fr;gap:10px;color:var(--muted)}
+.hist b{color:var(--sys);font-family:var(--f-num)}
+.desc{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.chron{display:flex;flex-direction:column;gap:10px}
+.chron article{border-left:2px solid var(--sys-dim);padding:4px 0 4px 12px}
+.chron h4{margin:0;font-family:var(--f-num);font-size:13px;color:var(--sys);font-weight:500}
+.chron p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+a{color:var(--sys)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--danger);padding:8px 10px;color:var(--danger)}
+
+/* Modal (System window) */
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;
+  background:rgba(2,5,12,.72);backdrop-filter:blur(3px);
+  padding:max(20px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
+.modal[hidden]{display:none}
+.modal .win{width:min(860px,100%);animation:pop .22s ease-out;margin-top:3vh}
+@keyframes pop{from{transform:scale(.97);opacity:0}}
+.x{margin-left:auto;background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:3px;color:var(--muted);font-size:18px;line-height:1;flex:none}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{background:none;border:1px solid transparent;padding:6px 10px;border-radius:3px;color:var(--muted)}
+.tab[aria-selected=true]{border-color:var(--sys-dim);color:var(--fg);background:rgba(79,179,255,.1)}
+.tab em{font-style:normal;font-family:var(--f-num);font-size:11px;margin-left:4px;color:var(--sys)}
+
+.toasts{position:fixed;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;width:min(440px,calc(100% - 32px));pointer-events:none}
+.toast{border:1px solid var(--sys);background:rgba(6,14,30,.96);padding:10px 14px;box-shadow:0 0 20px var(--sys-glow);animation:pop .25s ease-out;font-size:14px}
+.toast b{display:block;font-family:var(--f-num);font-size:11px;letter-spacing:.18em;color:var(--sys)}
+.toast.lvl{border-color:var(--gold);box-shadow:0 0 26px rgba(242,193,78,.45)}
+.toast.lvl b{color:var(--gold)}
+.banner{border:1px solid var(--line);padding:10px 14px;color:var(--muted);font-size:13px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:520px){.hud{grid-template-columns:auto 1fr}.hud-rank{display:none}.hud-name h1{font-size:17px}.advhead{grid-template-columns:64px 1fr}.advhead svg{width:64px;height:64px}}
+
+/* Camera: board close-up */
+.paper{transform:rotate(var(--rot,0deg))}
+.paper:hover,.paper:focus-visible{transform:translateY(-3px) rotate(0deg)}
+.paper .desc2{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:#4a3b28;line-height:1.4}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none}
+.stage{position:fixed;inset:0;z-index:40;overflow:hidden}
+.stage-dim{position:absolute;inset:0;background:#05070d}
+.stage .cam{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bpanel{position:absolute;top:max(12px,env(safe-area-inset-top,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));max-width:1240px;margin:0 auto;display:flex;flex-direction:column;
+  border:12px solid #5a3f22;outline:2px solid #2c1d10;border-radius:3px;box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 0 40px rgba(0,0,0,.35);
+  background-color:#6b4b2a;background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.05) 0 2px,transparent 3px),radial-gradient(circle at 70% 60%,rgba(0,0,0,.14) 0 2px,transparent 3px);background-size:22px 22px,17px 17px}
+.bp-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#4a311c;border-bottom:3px solid #2c1d10}
+.bp-h h2{flex:1;margin:0;text-align:center;font-family:var(--f-disp);font-weight:400;font-size:18px;letter-spacing:.12em;color:#f3e6cf;min-width:0}
+.btn.wood{border-color:#c9a24a;color:#f3e6cf;background:rgba(0,0,0,.25)}
+.btn.wood:hover{background:rgba(201,162,74,.2);box-shadow:none}
+.bp-b{flex:1;min-height:0;overflow-y:auto;padding:18px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.bp-col{min-width:0}
+.bp-col+.bp-col{border-left:3px dashed #3d2816;padding-left:20px}
+.bp-col h3{margin:0 0 16px;text-align:center;font-family:var(--f-disp);font-weight:400;font-size:15px;letter-spacing:.14em;color:#f3e6cf}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:22px 16px}
+.bp-grid .paper{min-height:150px;padding:14px 14px 12px}
+.bp-empty{grid-column:1/-1;margin:24px 0;text-align:center;color:#d8c39b}
+@media (max-width:640px){.bp-b{grid-template-columns:1fr;padding:14px}.bp-col+.bp-col{border-left:none;padding-left:0;border-top:3px dashed #3d2816;padding-top:16px}}
+/* Paper sheet up close */
+.sheetwrap{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheetback{position:absolute;inset:0;background:rgba(5,7,13,.62)}
+.sheet{position:relative;width:min(680px,100%);max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:12px;
+  padding:30px 26px 22px;border-radius:2px;background:#efe4c8 linear-gradient(180deg,#f3ead2,#e9dcbc);box-shadow:0 30px 80px rgba(0,0,0,.6);font-size:15px;
+  --fg:#2b2116;--muted:#6b5a40;--line:#cdbb93;--panel2:#f6eedb;--sys:#1f5f9e;--sys-dim:#1f5f9e;--sys-glow:rgba(31,95,158,.22);--danger:#b3261e;--ok:#2f7a4f;--gold:#8a6410;
+  --r-e:#5d6b80;--r-d:#2f7a4f;--r-c:#1f5f9e;--r-b:#6c45c9;--r-a:#b5541a;--r-s:#8a6410;color:var(--fg)}
+.sheet.flying{overflow:hidden}
+.sheet::before{content:"";position:absolute;top:10px;left:50%;width:14px;height:14px;border-radius:50%;background:#c0392b;transform:translateX(-50%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.sh-h{display:flex;align-items:center;gap:12px}
+.sh-h h2{flex:1;min-width:0;margin:0;font-family:var(--f-disp);font-weight:400;font-size:22px;line-height:1.25;overflow-wrap:anywhere;text-wrap:balance}
+.stamp2{transform:rotate(8deg);border:3px solid currentColor;font-family:var(--f-disp);font-size:12px;padding:2px 8px;letter-spacing:.08em;white-space:nowrap;flex:none}
+.st-board{color:#6b5a40}.st-active{color:#1f5f9e}.st-review{color:#b3261e}.st-done{color:#2f7a4f}
+.sheet textarea,.sheet input[type=text],.sheet input[type=number],.sheet input[type=date],.sheet select{color-scheme:light;background:#fffaf0;border-color:#cdbb93;color:#2b2116}
+.sheet .btn{background:transparent;border-color:#8a7754;color:#2b2116}
+.sheet .btn:hover{background:rgba(138,119,84,.14);box-shadow:none}
+.sheet .btn.pri{background:#1f5f9e;border-color:#1f5f9e;color:#fff}
+.sheet .btn.pri:hover{background:#2a72bb}
+.sheet .btn.warn{color:#b3261e;border-color:#b3261e}
+.sheet .btn.ghost{color:#6b5a40;border-color:#cdbb93}
+.sheet .bigbar{background:#e2d6b8}
+.sheet .bigbar i{box-shadow:none}
+.sheet .x{border-color:#8a7754;color:#4a3b28}
+.sheet .empty{border-color:#cdbb93}
+.sheet .kv b[style]{filter:brightness(.68) saturate(1.3)}
+
+#hall .hi{opacity:0}
+.cam .hi,.cam .lo{transition:opacity .15s ease}
+.cam .hi{opacity:0}
+.cam.detail .hi{opacity:1}
+.cam.detail .lo{opacity:0}
+.cam .hl{display:none}
+.cam .hot{cursor:default}
+.cam [data-paper],.cam [data-newpaper]{cursor:pointer}
+.cam [data-paper]:hover .pp,.cam [data-paper]:focus .pp,.cam [data-newpaper]:hover .pp,.cam [data-newpaper]:focus .pp{stroke:#f2c14e;stroke-width:1.2;stroke-dasharray:none}
+.cam [data-newpaper]:focus{outline:none}
+.cam [data-newpaper]:hover .pp,.cam [data-newpaper]:focus .pp{fill-opacity:.32;stroke-opacity:.9;stroke-dasharray:4 3}
+.cam [data-paper]:focus{outline:none}
+.cam [data-more]{cursor:pointer;text-decoration:underline}
+.stage-ctl{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .18s}
+.stage-ctl.on{opacity:1}
+.stage-ctl.on .btn{pointer-events:auto}
+.sc-top{position:absolute;top:max(12px,env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;gap:10px}
+.sc-bot{position:absolute;bottom:max(14px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.stage .btn.wood{background:rgba(26,16,8,.9)}
+.stage .btn.wood[aria-pressed=true]{background:#c9a24a;color:#2b2116;border-color:#c9a24a}
+
+.atts{display:flex;flex-direction:column;gap:6px}
+.att{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);background:var(--panel2);border-radius:3px;color:var(--fg)}
+.att a{overflow-wrap:anywhere;font-weight:600}
+.att>span:nth-child(2){overflow-wrap:anywhere}
+.att.up{opacity:.7}
+.aico{width:40px;height:40px;display:grid;place-items:center;border:1.5px solid var(--sys);color:var(--sys);font-family:var(--f-num);font-size:11px;font-weight:700;border-radius:2px}
+.athumb{width:40px;height:40px;object-fit:cover;border-radius:2px;border:1px solid var(--line);display:block}
+.dropping{outline:2px dashed var(--sys);outline-offset:-6px}
+
+.segbar{display:flex;gap:3px;height:14px}
+.segbar i{flex:1;min-width:3px;background:var(--seg-off,#06101f);border:1px solid var(--seg-line,var(--sys-dim));border-radius:1px}
+.segbar i.on{background:var(--sys)}
+.check .ckmeta{margin-left:auto;padding-left:10px;font-style:normal;font-family:var(--f-num);font-size:12px;color:var(--muted);white-space:nowrap}
+.ckp{margin:4px 0 8px 28px;padding:10px 12px;border:1px dashed var(--sys-dim);border-radius:3px;display:flex;flex-direction:column;gap:8px;background:var(--panel2)}
+hr.dash{border:none;border-top:2px dashed var(--line);margin:8px 0;width:100%}
+.links{display:flex;flex-direction:column;gap:6px}
+.lnk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center}
+.lnk a{overflow-wrap:anywhere}
+.lnk a.ib{display:grid;place-items:center;text-decoration:none}
+#r-res{min-height:72px}
+.kv1{grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr)) minmax(0,.8fr);gap:6px}
+.kv1 div{padding:7px 8px;min-width:0}
+.kv1 small{letter-spacing:.06em}
+.kv1 b{font-size:13px;overflow-wrap:anywhere}
+@media (max-width:600px){.kv1{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sheet{--seg-off:#d8c9a3;--seg-line:#b9a57c}
+.sheet input[type=url]{background:#fffaf0;border-color:#cdbb93;color:#2b2116;color-scheme:light}
+
+/* scenes */
+.veil{position:absolute;inset:0;background:#05070d;opacity:0;pointer-events:none}
+.ovl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;perspective:1800px;padding-top:44px;pointer-events:none}
+.ovl>*{pointer-events:auto}
+.ttop{position:relative;flex:none;border-radius:50%;font-size:var(--fs);background:radial-gradient(circle at 50% 42%,#a26f41 0,#87592f 45%,#6b4426 80%,#5a381f 100%);
+  box-shadow:0 0 0 calc(var(--fs)*.9) #4a2f19,0 0 0 calc(var(--fs)*1.05) #1d1209,0 40px 90px rgba(0,0,0,.65)}
+.ttop::before{content:"";position:absolute;inset:5%;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 0 14px,rgba(40,20,8,.14) 15px 16px);pointer-events:none}
+.tt-candle{position:absolute;width:2.4em;height:2.4em;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff4cc 0 16%,#efe6d0 19% 54%,#8a6a2a 57% 100%);box-shadow:0 0 3em 1.6em rgba(255,207,107,.33)}
+.tt-mug{position:absolute;width:3.2em;height:3.2em;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#f3e6cf 0 54%,#8a5a2b 57% 100%);border:2px solid #1d1209}
+.tt-mug::after{content:"";position:absolute;right:-1.15em;top:33%;width:1.1em;height:.9em;border:.32em solid #5a3a1a;border-left:none;border-radius:0 .6em .6em 0}
+.tt-empty{position:absolute;inset:0;display:grid;place-items:center;color:#e9dfc6;font-size:1.4em}
+.dos{position:absolute;width:15em;transform:translate(-50%,-50%) rotate(var(--r));text-align:left;background:#efe4c8;color:#2b2116;border:none;border-radius:2px;padding:1.2em 1em .9em;
+  box-shadow:0 .6em 1.3em rgba(0,0,0,.45);display:flex;flex-direction:column;gap:.45em;font-size:1em;transition:transform .15s}
+.dos:hover,.dos:focus-visible{transform:translate(-50%,-52%) rotate(0deg)}
+.dos-tab{position:absolute;top:-.65em;left:1.2em;width:4.4em;height:.95em;background:var(--c);border-radius:2px 2px 0 0}
+.dos-head{display:flex;gap:.7em;align-items:center}
+.dos-head svg{width:3.6em;height:3.6em;flex:none;border:1px solid #8a7754}
+.dos-head b{display:block;font-family:var(--f-disp);font-weight:400;font-size:1.35em;line-height:1.1}
+.dos-head i{font-style:normal;color:#6b5a40}
+.dos-meta{font-family:var(--f-num);font-size:.88em;color:#1f5f9e}
+.dos-st{font-size:.9em;font-weight:700;overflow-wrap:anywhere}.dos-st.free{color:#2f7a4f}.dos-st.busy{color:#8a6410}
+.dos-area{font-size:.85em;color:#6b5a40}
+.dos-new{background:rgba(26,16,10,.28);border:2px dashed rgba(233,223,198,.55);color:#e9dfc6;align-items:center;justify-content:center;min-height:11em;box-shadow:none}
+.dos-new .plus{font-size:3em;line-height:1}
+.dos-new:hover{border-color:#f2c14e;color:#f2c14e}
+.sh-port svg{width:56px;height:56px;display:block;border:1px solid #8a7754}
+.sh-sub{display:block;font-family:var(--f-ui);font-size:13px;color:var(--muted);letter-spacing:0;margin-top:2px}
+.sheet .q{cursor:default}
+.sheet .stat .bar{background:#e2d6b8}
+.sheet .bigbar{border-color:#1f5f9e}
+/* books */
+.book{position:relative;flex:none;display:flex;transform-style:preserve-3d}
+.book .pg,.book .cback{--fg:#2b2116;--muted:#6b5a40;--line:#cdbb93;--panel2:#f6eedb;--sys:#1f5f9e;--sys-dim:#1f5f9e;--danger:#b3261e;--ok:#2f7a4f;--gold:#8a6410;
+  --r-e:#5d6b80;--r-d:#2f7a4f;--r-c:#1f5f9e;--r-b:#6c45c9;--r-a:#b5541a;--r-s:#8a6410;color:#2b2116;font-size:15px}
+.book .pg{position:relative;flex:1;height:100%;background:#f1e7cd linear-gradient(90deg,#e6d8b5,#f3ead2 14%,#f3ead2 86%,#e6d8b5)}
+.book .pl{border-radius:6px 0 0 6px;box-shadow:inset -24px 0 30px -18px rgba(0,0,0,.5),0 26px 60px rgba(0,0,0,.6)}
+.book .pr{border-radius:0 6px 6px 0;box-shadow:inset 24px 0 30px -18px rgba(0,0,0,.5),0 26px 60px rgba(0,0,0,.6)}
+.book.single .pl{display:none}
+.book.single .pr{border-radius:6px;box-shadow:0 26px 60px rgba(0,0,0,.6)}
+.book.closed .pl{visibility:hidden}
+.book.shut .pr{visibility:hidden}
+.book.shut .pg{box-shadow:none!important}
+.book .pl,.book .pr{transition:box-shadow .45s ease}
+.cfront.cv{background:none;border:none;box-shadow:none;border-radius:0}
+.cv svg{display:block;width:100%;height:100%}
+.cover{position:absolute;top:0;left:50%;height:100%;transform-style:preserve-3d;transform-origin:left center;z-index:6}
+.book.single .cover{left:0}
+.cf{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.cfront{border-radius:0 7px 7px 0;border:2px solid #120a05;display:flex;align-items:center;justify-content:center;box-shadow:inset 16px 0 20px -10px rgba(0,0,0,.6),0 26px 60px rgba(0,0,0,.6)}
+.cfront.lthBlue{background:linear-gradient(135deg,#2f568f,#1c3564 55%,#101f3c)}
+.cfront.lthRed{background:linear-gradient(135deg,#8a3a24,#5a2014 55%,#34100a)}
+.cfront.lthJ{background:linear-gradient(135deg,#7a2a24,#5a1c1c 55%,#3e1414)}
+.cf-frame{position:absolute;inset:7%;border:2px solid #c9a24a;outline:1px solid rgba(201,162,74,.5);outline-offset:-8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35em;
+  color:#e6c88a;font-family:var(--f-disp);font-size:clamp(20px,3.4vw,32px);letter-spacing:.12em;text-shadow:0 2px 0 #120a05}
+.cf-frame b{font-weight:400}.cf-orn{font-size:.55em;color:#c9a24a}
+.cback{transform:rotateY(180deg);border-radius:6px 0 0 6px}
+.leaf{position:absolute;top:0;left:50%;width:50%;height:100%;transform-style:preserve-3d;transform-origin:left center;z-index:5}
+.leaf.lb{left:0;transform-origin:right center}
+.book.single .leaf{left:0;width:100%}
+.book.single .leaf.lb{transform-origin:right center}
+.leaf .cf{border-radius:0}.leaf .lk{transform:rotateY(180deg)}
+.book .cf.pg{position:absolute;inset:0;height:auto}
+.leaf .lk,.cback{visibility:hidden}
+.bk-t td,.book .pg td{color:#2b2116}
+.pgin{height:100%;overflow-y:auto;padding:30px 28px 22px;display:flex;flex-direction:column;gap:10px}
+.bk-h{font-family:var(--f-disp);font-size:18px;letter-spacing:.05em;color:#3a2a1a;border-bottom:1px solid #cdbb93;padding-bottom:6px}
+.bk-h.s{font-size:14px;margin-top:6px}.bk-h.c,.c{text-align:center}
+.bk-date b{display:block;font-family:var(--f-disp);font-weight:400;font-size:30px}.bk-date span{color:#6b5a40}
+.bk-stamp{align-self:flex-start;transform:rotate(-6deg);border:3px solid currentColor;font-family:var(--f-disp);padding:3px 10px;letter-spacing:.08em}
+.bk-stamp.ok{color:#2f7a4f}.bk-stamp.bad{color:#b3261e}
+.bk-nav{margin-top:auto;display:flex;justify-content:space-between;gap:10px;padding-top:8px}
+.bk-link{background:none;border:none;color:#1f5f9e;font-weight:700;padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.bk-link:hover{color:#2a72bb}
+.book textarea,.book input[type=date]{color-scheme:light;background:#fffaf0;border:1px solid #cdbb93;color:#2b2116;border-radius:3px}
+.book input[type=date]{padding:7px 9px}
+#ae-extra{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.book .btn:not(.pri){background:transparent;border-color:#8a7754;color:#2b2116;box-shadow:none}
+.book .btn:not(.pri):hover{background:rgba(138,119,84,.14)}
+.book input[type=url]{color-scheme:light;background:#fffaf0;border:1px solid #cdbb93;color:#2b2116;border-radius:3px;padding:7px 9px;width:100%}
+.book input[type=text],.book select{color-scheme:light;background:#fffaf0;border:1px solid #cdbb93;color:#2b2116;border-radius:3px;padding:7px 9px;width:100%}
+.book textarea:not(.lined){padding:7px 9px;width:100%;min-height:0;resize:vertical}
+.book label.f{color:#6b5a40}
+.bk-acts{display:flex;gap:16px}.bk-link.danger{color:#b3261e}
+.book .confirm{color:#b3261e;border-color:#b3261e;font-size:13px}
+textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradient(transparent 0 27px,#ddd0ae 27px 28px);background-attachment:local;line-height:28px;padding:2px 10px;resize:none}
+.lined-text{white-space:pre-wrap;line-height:28px}
+.jr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.jr-it{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-bottom:1px dotted #b9a57c}
+.jr-tag{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:3px;margin-top:2px;border:1px solid currentColor}
+.jr-tag.jq{color:#1f5f9e}.jr-tag.jo{color:#7a5a2a}
+.jr-tx{flex:1;min-width:0}.jr-tx b{display:block;font-weight:600;overflow-wrap:anywhere;white-space:pre-wrap}.jr-tx i{font-style:normal;font-size:12px;color:#6b5a40}
+.jr-del{flex:0 0 auto;background:none;border:none;color:#9b8a6a;font-size:20px;line-height:1;padding:0 4px;cursor:pointer}.jr-del:hover{color:#b3261e}
+.jr-add{align-self:flex-start;margin-top:10px;background:none;border:2px dashed #b9a57c;color:#1f5f9e;font-weight:700;padding:8px 14px;border-radius:4px;cursor:pointer}
+.jr-add:hover{border-color:#1f5f9e;background:rgba(31,95,158,.06)}
+.jr-box{margin-top:10px;padding:10px;border:1px solid #cdbb93;border-radius:4px;background:rgba(255,250,240,.6);display:flex;flex-direction:column;gap:8px}
+.jr-cap{font-family:var(--f-disp);color:#6b5a40;letter-spacing:.04em}
+.jr-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.jr-opt{display:flex;flex-direction:column;gap:2px;text-align:left;background:#fffaf0;border:1px solid #b9a57c;border-radius:4px;padding:10px;color:#2b2116;cursor:pointer}
+.jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
+.jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
+.jr-empty{margin:6px 0}
+.btn.ret,.sheet .btn.ret,.book .btn.ret{background:transparent;border-color:#a37a12;color:#8a6408}
+.btn.ret:hover,.sheet .btn.ret:hover,.book .btn.ret:hover{background:rgba(163,122,18,.14)}
+.pend-plate{align-self:flex-start;display:inline-block;border:2px solid #a37a12;color:#8a6408;background:rgba(214,170,60,.14);font-weight:700;font-size:13px;letter-spacing:.03em;padding:5px 10px;border-radius:3px;margin:6px 0}
+.pend-tag{display:table;font-style:normal;font-size:11px;font-weight:700;color:#8a6408;border:1px solid #a37a12;border-radius:3px;padding:0 5px;margin-top:2px}
+.pend-cnt{font-style:normal;font-size:12px;color:#8a6408;margin-left:6px}
+.bk-review{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.jr-time{display:flex;flex-direction:column;gap:4px}.jr-time .row{display:flex;gap:10px}.jr-time label.f{flex:0 1 110px}
+.book input[type=number]{color-scheme:light;background:#fffaf0;border:1px solid #cdbb93;color:#2b2116;border-radius:3px;padding:7px 9px;width:100%}
+.book .btn.pri{background:#1f5f9e;border-color:#1f5f9e;color:#fff}
+.book .bigbar{background:#e2d6b8;border-color:#1f5f9e}.book .bigbar i{box-shadow:none}
+.bk-t{width:100%;border-collapse:collapse;font-size:14px}.bk-t td{padding:6px 4px;border-bottom:1px dotted #b9a57c}.bk-t td.num{text-align:right;font-family:var(--f-num)}
+.bk-toc{display:flex;align-items:baseline;gap:8px;background:none;border:none;padding:9px 0;font-size:16px;color:#2b2116;text-align:left;width:100%}
+.bk-toc i{flex:1;border-bottom:2px dotted #b9a57c}.bk-toc b{font-family:var(--f-num)}.bk-toc:hover span{color:#1f5f9e;text-decoration:underline}
+.bk-row{display:flex;gap:10px;align-items:center;width:100%;background:none;border:none;border-bottom:1px dotted #b9a57c;padding:7px 2px;text-align:left;color:#2b2116}
+.bk-row:hover{background:rgba(31,95,158,.07)}
+.bk-rt{min-width:0}.bk-rt b{display:block;overflow-wrap:anywhere}.bk-rt i{font-style:normal;font-size:12px;color:#6b5a40}
+.bk-title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px}
+.bk-title span{color:#8a6410}.bk-title b{font-family:var(--f-disp);font-weight:400;font-size:40px;letter-spacing:.12em}.bk-title i{font-style:normal;color:#6b5a40}
+.bk-big{font-family:var(--f-disp);font-size:32px;text-align:center}
+.bk-crest{display:flex;justify-content:center}.bk-crest svg{width:84px;height:104px}
+.bk-ranks{display:flex;flex-wrap:wrap;gap:12px}.bk-ranks>span{display:flex;align-items:center;gap:6px;font-family:var(--f-num)}
+.bk-rep h4{margin:0;font-family:var(--f-num);color:#1f5f9e;font-size:13px;font-weight:500}.bk-rep p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.bk-qt{display:flex;gap:10px;align-items:center}.bk-qt b{font-family:var(--f-disp);font-weight:400;font-size:20px;overflow-wrap:anywhere}
+.bk-item{display:grid;grid-template-columns:18px 1fr;gap:4px 8px;padding:4px 0;border-bottom:1px dotted #d3c39c}.bk-item i{grid-column:2;font-style:normal;font-size:12px;color:#6b5a40}
+.bk-item.done span:first-child{color:#2f7a4f}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hud" aria-label="Статус гильдии" hidden>
+    <div class="hud-lvl"><small>Уровень</small><b id="lvl">1</b></div>
+    <div class="hud-mid">
+      <div class="hud-name"><h1>Гильдия искателей приключений</h1><span id="htitle">Ранг E · Захудалая контора</span></div>
+      <div class="xpbar" role="progressbar" aria-label="Опыт гильдии" id="xpbarw"><i id="xpbar" style="width:0%"></i></div>
+      <div class="xpmeta"><span id="xptxt">0 / 100 XP</span><span id="mgr">Менеджер на смене</span></div>
+    </div>
+    <div class="hud-rank" id="hrank" style="color:var(--r-e)"><span>E</span></div>
+  </header>
+
+  <div id="status" class="banner" hidden></div>
+
+  <section class="hall" aria-label="Зал гильдии, вид из-за стойки">
+    <div id="bellLayer" aria-live="polite"></div>
+    <svg id="hall" viewBox="0 0 1200 680" role="img" aria-label="Зал гильдии: столы с авантюристами, доска заказов, дверь, стойка с журналом и две полки"></svg>
+  </section>
+  <nav class="hallnav" aria-label="Места в зале" hidden>
+    <button class="btn" data-open="board">Доска заказов</button>
+    <button class="btn" data-open="advs">Авантюристы</button>
+    <button class="btn" data-open="ledger" id="navLedger">Журнал смены</button>
+    <button class="btn" data-open="guild">Статус гильдии</button>
+    <button class="btn" data-open="archive">Архив</button>
+  </nav>
+
+  <section class="win aqwin" aria-labelledby="aq-h" hidden>
+    <div class="win-h"><span class="tag">В РАБОТЕ</span><h2 id="aq-h">Заказы у авантюристов</h2><button class="btn sm" data-open="new">+ Заказ</button></div>
+    <div class="win-b"><div class="qlist" id="activeList"></div></div>
+  </section>
+</div>
+
+<div id="modal" class="modal" hidden></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* ---------- Supabase backend: login + the small db/user/assets API the game expects ---------- */
+(function(){
+const SUPA_URL="https://zxlelnjnguorqoqnqzgw.supabase.co";
+const SUPA_KEY="sb_publishable_OGsWYqEtfhXHnZTs2OPOYg_kQqUNo1E";
+const BUCKET="files";
+const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+window.blobUrl=id=>sb.storage.from(BUCKET).getPublicUrl(id).data.publicUrl;
+
+const err=(e)=>{if(!e)return e;const x=new Error(e.message||String(e));x.code=(e.code==="42501"||/row-level security|permission denied/i.test(e.message||""))?"invalid_argument":(e.code||"unavailable");return x};
+const ok=r=>{if(r.error)throw err(r.error);return r.data};
+
+/* ---------- login screen ---------- */
+const css=document.createElement("style");
+css.textContent=`
+#auth{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at 50% 30%,#2a1b10,#0c0805 70%);font-family:"Exo 2",system-ui,sans-serif}
+#auth[hidden],#auth label[hidden],#auth .sw[hidden]{display:none}
+#auth .card{width:min(380px,100%);background:#efe4c8;color:#2b2116;border-radius:6px;padding:26px 24px 22px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 1px #c9b78f}
+#auth h1{margin:0 0 4px;font-family:"Russo One",sans-serif;font-weight:400;font-size:22px;letter-spacing:.02em}
+#auth p{margin:0 0 16px;font-size:14px;color:#6b5a40;line-height:1.4}
+#auth label{display:block;font-size:13px;color:#6b5a40;margin:0 0 10px}
+#auth input{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 10px;border:1px solid #cdbb93;border-radius:4px;background:#fffaf0;color:#2b2116;font:inherit;font-size:15px;color-scheme:light}
+#auth input:focus{outline:2px solid #1f5f9e;outline-offset:0;border-color:#1f5f9e}
+#auth .go{width:100%;margin-top:6px;padding:10px;border:0;border-radius:4px;background:#1f5f9e;color:#fff;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+#auth .go:disabled{opacity:.6;cursor:default}
+#auth .sw{display:block;margin:14px auto 0;background:none;border:0;color:#1f5f9e;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer}
+#auth .msg{min-height:1.2em;margin:10px 0 0;font-size:13px;color:#b3261e;line-height:1.4}
+#auth .msg.ok{color:#2f7a4f}
+#logout{position:fixed;right:10px;bottom:10px;z-index:50;padding:5px 10px;border:1px solid rgba(230,200,138,.35);border-radius:4px;background:rgba(12,8,5,.55);color:#cdb98f;font:13px "Exo 2",system-ui,sans-serif;cursor:pointer;opacity:.55}
+#logout:hover,#logout:focus-visible{opacity:1}`;
+document.head.appendChild(css);
+const box=document.createElement("div");box.id="auth";box.hidden=true;
+box.innerHTML='<form class="card" novalidate><h1>Гильдия искателей приключений</h1><p id="au-sub">Войди, чтобы открыть зал гильдии.</p>'+
+  '<label id="au-nw" hidden>Имя<input id="au-name" autocomplete="name" maxlength="40" placeholder="Как тебя называть"></label>'+
+  '<label>Почта<input id="au-email" type="email" autocomplete="email" required></label>'+
+  '<label>Пароль<input id="au-pass" type="password" autocomplete="current-password" minlength="6" required></label>'+
+  '<button class="go" id="au-go" type="submit">Войти</button><div class="msg" id="au-msg" role="status"></div>'+
+  '<button class="sw" id="au-sw" type="button">Нет аккаунта? Зарегистрироваться</button></form>';
+document.body.appendChild(box);
+const q=s=>box.querySelector(s);let mode="in";
+const say=(t,good)=>{q("#au-msg").textContent=t||"";q("#au-msg").className="msg"+(good?" ok":"")};
+const setMode=m=>{mode=m;q("#au-nw").hidden=m!=="up";q("#au-go").textContent=m==="up"?"Зарегистрироваться":"Войти";
+  q("#au-sw").textContent=m==="up"?"Уже есть аккаунт? Войти":"Нет аккаунта? Зарегистрироваться";q("#au-pass").autocomplete=m==="up"?"new-password":"current-password";say("")};
+q("#au-sw").onclick=()=>setMode(mode==="in"?"up":"in");
+
+let member=null,sessUser=null,resolveReady;
+const ready=new Promise(r=>resolveReady=r);
+
+async function enter(user){
+  sessUser=user;
+  const r=await sb.rpc("join_guild",{display_name:(user.user_metadata&&user.user_metadata.name)||null});
+  if(r.error){say("Не удалось связаться с базой гильдии: "+r.error.message);box.hidden=false;return false}
+  if(!r.data){box.hidden=false;say("Почты "+user.email+" нет в списке гильдии. Попроси владельца добавить её.");
+    q("#au-go").textContent="Выйти";mode="out";q("#au-sw").hidden=true;return false}
+  member=r.data;box.hidden=true;
+  const lo=document.createElement("button");lo.id="logout";lo.type="button";lo.textContent="Выйти";
+  lo.onclick=async()=>{await sb.auth.signOut();location.reload()};document.body.appendChild(lo);
+  resolveReady();return true;
+}
+q("form").onsubmit=async e=>{
+  e.preventDefault();
+  if(mode==="out"){await sb.auth.signOut();location.reload();return}
+  const email=q("#au-email").value.trim(),password=q("#au-pass").value,name=q("#au-name").value.trim();
+  if(!email||!password){say("Введи почту и пароль.");return}
+  if(password.length<6){say("Пароль должен быть не короче 6 символов.");return}
+  if(mode==="up"&&!name){say("Напиши, как тебя называть.");return}
+  q("#au-go").disabled=true;say("");
+  try{
+    if(mode==="up"){
+      const r=await sb.auth.signUp({email,password,options:{data:{name}}});
+      if(r.error){say(/registered|already/i.test(r.error.message)?"Такая почта уже зарегистрирована. Войди.":r.error.message);return}
+      if(!r.data.session){say("Аккаунт создан, но Supabase ждёт подтверждения почты. Владельцу нужно выключить «Confirm email» в настройках входа.");return}
+      await enter(r.data.session.user);
+    }else{
+      const r=await sb.auth.signInWithPassword({email,password});
+      if(r.error){say(/invalid/i.test(r.error.message)?"Неверная почта или пароль.":/confirm/i.test(r.error.message)?"Почта не подтверждена. Владельцу нужно выключить «Confirm email» в настройках входа.":r.error.message);return}
+      await enter(r.data.user);
+    }
+  }catch(x){say("Нет связи с сервером. Проверь интернет и попробуй ещё раз.")}
+  finally{q("#au-go").disabled=false}
+};
+sb.auth.getSession().then(r=>{const s=r.data&&r.data.session;if(s)enter(s.user);else{box.hidden=false;q("#au-email").focus()}})
+  .catch(()=>{box.hidden=false;say("Нет связи с сервером.")});
+
+/* ---------- db: collections and documents with live updates ---------- */
+const colSubs={},docSubs={};let chan=null,timers={};
+const snapDoc=(id,data)=>({id,exists:data!=null,data:()=>data});
+async function fetchCol(c){const rows=ok(await sb.from("docs").select("id,data").eq("col",c));return rows||[]}
+async function refresh(c){
+  if(!colSubs[c]&&!Object.keys(docSubs).some(k=>k.startsWith(c+"/")))return;
+  let rows;try{rows=await fetchCol(c)}catch(e){(colSubs[c]||[]).forEach(s=>s.onErr&&s.onErr(e));return}
+  (colSubs[c]||[]).forEach(s=>{let list=rows.slice();
+    if(s.order){const[f,dir]=s.order;list.sort((a,b)=>{const x=(a.data||{})[f]??"",y=(b.data||{})[f]??"";return (x<y?-1:x>y?1:0)*(dir==="desc"?-1:1)})}
+    if(s.lim)list=list.slice(0,s.lim);
+    s.cb({docs:list.map(r=>snapDoc(r.id,r.data)),size:list.length})});
+  Object.keys(docSubs).forEach(k=>{const[cc,id]=k.split("/");if(cc!==c)return;const r=rows.find(x=>x.id===id);docSubs[k].forEach(s=>s.cb(snapDoc(id,r?r.data:null)))});
+}
+const soon=c=>{clearTimeout(timers[c]);timers[c]=setTimeout(()=>refresh(c),120)};
+function live(){if(chan)return;chan=sb.channel("guild-docs").on("postgres_changes",{event:"*",schema:"public",table:"docs"},p=>{const c=(p.new&&p.new.col)||(p.old&&p.old.col);if(c)soon(c);else Object.keys(colSubs).forEach(soon)}).subscribe()}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)Object.keys(colSubs).forEach(soon)});
+function collection(c){
+  const s={order:null,lim:0};
+  const api={orderBy(f,dir){s.order=[f,dir||"asc"];return api},limit(n){s.lim=n;return api},
+    onSnapshot(cb,onErr){s.cb=cb;s.onErr=onErr;(colSubs[c]=colSubs[c]||[]).push(s);live();refresh(c);
+      return()=>{colSubs[c]=colSubs[c].filter(x=>x!==s)}}};
+  return api;
+}
+function doc(path){
+  const i=path.indexOf("/"),c=path.slice(0,i),id=path.slice(i+1);
+  return{
+    async set(data){ok(await sb.from("docs").upsert({col:c,id,data,updated_at:new Date().toISOString()}));refresh(c)},
+    async update(patch){ok(await sb.rpc("doc_merge",{c,i:id,patch}));refresh(c)},
+    async delete(){ok(await sb.from("docs").delete().eq("col",c).eq("id",id));refresh(c)},
+    async get(){const r=ok(await sb.from("docs").select("data").eq("col",c).eq("id",id).maybeSingle());return snapDoc(id,r?r.data:null)},
+    onSnapshot(cb,onErr){const k=c+"/"+id,s={cb,onErr};(docSubs[k]=docSubs[k]||[]).push(s);live();
+      sb.from("docs").select("data").eq("col",c).eq("id",id).maybeSingle().then(r=>{if(r.error){onErr&&onErr(err(r.error));return}cb(snapDoc(id,r.data?r.data.data:null))});
+      return()=>{docSubs[k]=docSubs[k].filter(x=>x!==s)}}
+  };
+}
+const dbApi={collection,doc};
+
+/* ---------- user ---------- */
+const userApi={
+  async me(){return{id:sessUser.id,name:(member&&member.name)||(sessUser.email||"").split("@")[0],isOwner:!!(member&&member.role==="owner")}},
+  async can(){return !!member},
+  async profiles(ids){const out={};try{const rows=ok(await sb.from("members").select("user_id,name,email").in("user_id",ids.filter(x=>/^[0-9a-f-]{36}$/i.test(x))));
+    (rows||[]).forEach(r=>{out[r.user_id]={name:r.name||(r.email||"").split("@")[0]}})}catch(e){}return out}
+};
+
+/* ---------- files ---------- */
+const assetsApi={
+  async upload(file,opt){const ext=(file.name.match(/\.[a-z0-9]{1,8}$/i)||[""])[0].toLowerCase();
+    const path=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2))+ext;
+    ok(await sb.storage.from(BUCKET).upload(path,file,{contentType:(opt&&opt.type)||file.type||"application/octet-stream",upsert:false}));
+    return{id:path,sizeBytes:file.size,contentType:(opt&&opt.type)||file.type}},
+  async delete(id){ok(await sb.storage.from(BUCKET).remove([id]))}
+};
+
+window.claude={use:async name=>{await ready;return name==="db"?dbApi:name==="user"?userApi:name==="assets"?assetsApi:null}};
+})();
+</script>
+<script>
+(function(){
+const RANKS=["E","D","C","B","A","S"];
+const RANK_XP={E:10,D:25,C:50,B:100,A:200,S:400};
+const RANK_HINT={E:"пара часов",D:"день",C:"несколько дней",B:"неделя",A:"2-3 недели",S:"месяц и больше"};
+const STATUS={board:"Новый",active:"В работе",review:"На проверке",done:"Выполнен"};
+const KIND={simple:"Обычный",counter:"Счётчик",checklist:"Чек-лист"};
+const CLASSES={
+  chron:{n:"Летописец",area:"Изучение и прочтение книг и статей",c:"#a77bff"},
+  eng:{n:"Инженер",area:"Разработка прототипов, кодинг",c:"#ff9a4f"},
+  sci:{n:"Учёный",area:"Исследования",c:"#5fd28f"}
+};
+const NO_CLASS={n:"Авантюрист",area:"",c:"#9aa8bf"};
+const MAX_ACTIVE=1, MAX_ADVS=3, DAILY_XP=15, STEP_XP=2;
+let draft=[],assetsApi=null,uploading={},pendingFiles=[];
+const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json"};
+const ATT_ACCEPT=Object.keys(ATT_TYPES).map(e=>"."+e).join(",");
+const ATT_HINT="PDF, изображения, видео, TXT, MD, CSV, JSON · до 20 МБ";
+const fmtSize=b=>b<1024?b+" Б":b<1048576?Math.round(b/1024)+" КБ":(b/1048576).toFixed(1)+" МБ";
+const extOf=n=>(String(n).split(".").pop()||"").toLowerCase();
+const GUILD_TITLE={E:"Захудалая контора",D:"Местная гильдия",C:"Надёжная гильдия",B:"Известная гильдия",A:"Прославленная гильдия",S:"Королевская гильдия"};
+
+let db=null,user=null,me=null,isOwner=false,canWrite=true;
+let quests=[],daily=[],advs=[],ownerId=null;
+let loaded=false,prevLevel=null,modalState=null;
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today=()=>ymd(new Date());
+const yesterday=()=>{const d=new Date();d.setDate(d.getDate()-1);return ymd(d)};
+const ru=s=>{if(!s)return"";const[y,m,d]=s.split("-");return d+"."+m+"."+y};
+const ruShort=s=>{if(!s)return"";const[y,m,d]=s.split("-");return d+"."+m};
+const wd=s=>["вс","пн","вт","ср","чт","пт","сб"][new Date(s+"T12:00:00").getDay()];
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+
+function toast(text,kind){
+  const t=document.createElement("div");t.className="toast"+(kind==="lvl"?" lvl":"");
+  t.innerHTML="<b>"+(kind==="lvl"?"LEVEL UP":"СИСТЕМА")+"</b>"+esc(text);
+  $("#toasts").appendChild(t);setTimeout(()=>t.remove(),kind==="lvl"?5200:3200);
+}
+
+/* ---------- derived numbers ---------- */
+const advById=id=>advs.find(a=>a.id===id);
+const advColor=a=>a?(CLASSES[a.cls]?.c||a.color||"#9aa8bf"):"#9aa8bf";
+const advCls=a=>CLASSES[a?.cls]||NO_CLASS;
+function progressOf(q){
+  if(q.kind==="counter"){const t=+q.target||0;return t?Math.min(1,(+q.current||0)/t):0}
+  if(q.kind==="checklist"){const it=q.items||[];return it.length?it.filter(i=>i.d).length/it.length:0}
+  return q.status==="done"?1:0;
+}
+const questXP=q=>q.status!=="done"?0:(RANK_XP[q.rank]||10)+(q.kind==="checklist"?Math.min(200,(q.history||[]).filter(h=>h.delta==="✓").length)*STEP_XP:0);
+function guildXP(){return quests.reduce((s,q)=>s+questXP(q),0)+reports().length*DAILY_XP}
+function levelFrom(xp,base,step){let l=1,need=base,acc=0;while(xp>=acc+need){acc+=need;l++;need=base+(l-1)*step}return{level:l,into:xp-acc,need}}
+const guildLevel=xp=>levelFrom(xp,100,25);
+const ADV_RANKS=[["E",0],["D",100],["C",450],["B",1250],["A",2700],["S",5000]];
+function advRankInfo(xp){let i=0;while(i+1<ADV_RANKS.length&&xp>=ADV_RANKS[i+1][1])i++;const cur=ADV_RANKS[i],nx=ADV_RANKS[i+1];
+  return nx?{rank:cur[0],next:nx[0],into:xp-cur[1],need:nx[1]-cur[1],pct:(xp-cur[1])/(nx[1]-cur[1])*100}:{rank:cur[0],next:null,into:xp-cur[1],need:0,pct:100}}
+const rankLine=(s)=>s.R.next?s.R.into+' / '+s.R.need+' XP до ранга '+s.R.next+' · всего '+s.xp:'Высший ранг · всего '+s.xp+' XP';
+function rankFor(l){return l>=50?"S":l>=35?"A":l>=20?"B":l>=10?"C":l>=5?"D":"E"}
+const reports=()=>daily.filter(d=>(d.text||"").trim());
+function streak(){
+  const set=new Set(reports().map(d=>d.id));
+  let n=0;const d=new Date();d.setDate(d.getDate()-1);
+  for(let i=0;i<400;i++){const k=ymd(d),day=d.getDay();if(set.has(k))n++;else if(day!==0&&day!==6)break;d.setDate(d.getDate()-1)}
+  return n;
+}
+const isOver=q=>q.deadline&&q.status!=="done"&&q.deadline<today();
+const activeOf=a=>quests.filter(q=>q.adv===a.id&&q.status==="active");
+function advStats(a){
+  const mine=quests.filter(q=>q.adv===a.id),done=mine.filter(q=>q.status==="done");
+  const xp=mine.reduce((s,q)=>s+questXP(q),0),R=advRankInfo(xp);
+  const might=done.reduce((s,q)=>s+RANKS.indexOf(q.rank)+1,0);
+  const withDl=done.filter(q=>q.deadline);
+  const onTime=withDl.length?Math.round(withDl.filter(q=>(q.doneAt||"").slice(0,10)<=q.deadline).length/withDl.length*100):null;
+  const stamina=mine.reduce((s,q)=>s+(q.history||[]).length,0);
+  const load=activeOf(a).length;
+  return{xp,R,rank:R.rank,done:done.length,might,onTime,stamina,load,mine};
+}
+const lvlRank=()=>{const L=guildLevel(guildXP());return{L,rk:rankFor(L.level)}};
+
+/* ---------- HUD & lists ---------- */
+function renderHUD(){
+  const xp=guildXP(),{L,rk}=lvlRank();
+  $("#lvl").textContent=L.level;
+  $("#xpbar").style.width=(L.into/L.need*100).toFixed(1)+"%";
+  $("#xpbarw").setAttribute("aria-valuenow",Math.round(L.into/L.need*100));
+  $("#xptxt").textContent=L.into+" / "+L.need+" XP · всего "+xp+" · серия отчётов "+streak();
+  const hr=$("#hrank");hr.style.color="var(--r-"+rk.toLowerCase()+")";hr.firstElementChild.textContent=rk;
+  $("#htitle").textContent="Ранг "+rk+" · "+GUILD_TITLE[rk];
+  const pend=!reports().some(d=>d.id===yesterday());
+  const nl=$("#navLedger");nl.classList.toggle("alert",pend);nl.textContent=pend?"Журнал смены: отчёт за вчера!":"Журнал смены";
+  if(loaded&&prevLevel!==null&&L.level>prevLevel)toast("Гильдия выросла до уровня "+L.level+". Ранг "+rk+".","lvl");
+  if(loaded)prevLevel=L.level;
+}
+async function renderName(){
+  let name="";
+  try{if(user&&ownerId){const ps=await user.profiles([ownerId]);name=ps[ownerId]?.name||""}}catch(e){}
+  if(!name&&isOwner&&me)name=me.name||"";
+  $("#mgr").textContent=name?("Менеджер: "+name.split(" ")[0]):"Менеджер на смене";
+}
+function sortQ(a,b){return (a.deadline||"9999").localeCompare(b.deadline||"9999")||RANKS.indexOf(b.rank)-RANKS.indexOf(a.rank)}
+function rightText(q){
+  if(q.kind==="counter")return (+q.current||0)+" / "+(+q.target||0)+" "+esc(q.unit||"");
+  if(q.kind==="checklist")return (q.items||[]).filter(i=>i.d).length+" / "+(q.items||[]).length;
+  return q.deadline?("до "+ruShort(q.deadline)):"";
+}
+function qRow(q){
+  const p=progressOf(q),over=isOver(q),a=advById(q.adv);
+  return '<button class="q" data-q="'+esc(q.id)+'"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span>'+
+    '<span class="q-t"><b>'+esc(q.title)+'</b><span>'+STATUS[q.status]+(a?' · <span style="color:'+advColor(a)+'">'+esc(a.name)+'</span>':"")+(over?' · <span class="over">просрочен</span>':(q.deadline?" · до "+ru(q.deadline):""))+'</span>'+
+    (q.kind!=="simple"?'<span class="mini"><i style="width:'+(p*100).toFixed(0)+'%"></i></span>':"")+'</span>'+
+    '<span class="q-r'+(over?" over":"")+'">'+rightText(q)+'</span></button>';
+}
+function renderActive(){
+  const act=quests.filter(q=>q.status==="active").sort(sortQ);
+  $("#activeList").innerHTML=act.length?act.map(qRow).join(""):'<div class="empty">Ни один авантюрист сейчас не на задании. Открой доску заказов и назначь исполнителя.</div>';
+}
+
+/* ---------- portraits ---------- */
+function portrait(a,size){
+  const c=advColor(a),ini=esc((a?.name||"?").slice(0,1).toUpperCase());
+  return '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" fill="#0b1430"/><circle cx="32" cy="70" r="30" fill="'+c+'" opacity=".85"/><circle cx="32" cy="26" r="13" fill="#e3c9a6"/><path d="M17 26c0-11 7-17 15-17s15 6 15 17c-4-6-9-8-15-8s-11 2-15 8z" fill="'+c+'"/><text x="32" y="58" text-anchor="middle" font-family="Russo One" font-size="13" fill="#0b1430">'+ini+'</text></svg>';
+}
+
+/* ---------- Hall scene ---------- */
+function wrapT(t,n,max){
+  const w=String(t||"").split(/\s+/).filter(Boolean),out=[];let cur="",used=0;
+  for(const x of w){const nx=cur?cur+" "+x:x;
+    if(nx.length<=n){cur=nx;used++;continue}
+    if(cur)out.push(cur);if(out.length===max){cur="";break}
+    cur=x.length>n?x.slice(0,n-1)+"…":x;used++}
+  if(cur&&out.length<max)out.push(cur);
+  if(used<w.length&&out.length){const l=out[out.length-1];out[out.length-1]=(l.length>n-1?l.slice(0,n-1):l).replace(/…$/,"")+"…"}
+  return out.slice(0,max);
+}
+function paperHi(q,x,y){
+  const a=advById(q.adv),p=progressOf(q),over=isOver(q),c=PAPER_RC[q.rank],t=wrapT(q.title,15,2);
+  const tx=(xx,yy,size,fill,body,extra)=>'<text x="'+xx+'" y="'+yy+'" font-family="Exo 2" font-size="'+size+'" fill="'+fill+'"'+(extra||"")+'>'+body+'</text>';
+  let h='<rect x="'+(x+5)+'" y="'+(y+7)+'" width="9" height="9" fill="none" stroke="'+c+'" stroke-width=".8"/>'+
+    '<text x="'+(x+9.5)+'" y="'+(y+14)+'" text-anchor="middle" font-family="Russo One" font-size="6.5" fill="'+c+'">'+q.rank+'</text>'+
+    tx(x+17,y+13.4,4.3,"#5b4a33",KIND[q.kind]+" · "+(RANK_XP[q.rank]||10)+" XP");
+  t.forEach((l,i)=>{h+=tx(x+5,y+24+i*7,5.8,"#2b2116",esc(l),' font-weight="700"')});
+  let yy=y+24+t.length*7;
+  if(q.kind!=="simple"){
+    h+='<rect x="'+(x+5)+'" y="'+(yy-3)+'" width="50" height="2.4" fill="#cdbf9f"/><rect x="'+(x+5)+'" y="'+(yy-3)+'" width="'+(50*p).toFixed(1)+'" height="2.4" fill="#2a6fb0"/>';
+    yy+=4;h+=tx(x+5,yy,4.3,"#5b4a33",rightText(q)+" · "+Math.round(p*100)+"%");yy+=7;
+  }
+  h+=a?'<circle cx="'+(x+6.6)+'" cy="'+(yy-1.5)+'" r="1.6" fill="'+advColor(a)+'"/>'+tx(x+9.8,yy,4.3,"#2b2116",esc(a.name)+" · "+esc(advCls(a).n)):tx(x+5,yy,4.3,"#5b4a33","Без исполнителя");
+  yy+=7;h+=tx(x+5,yy,4.3,over?"#b3261e":"#5b4a33",q.deadline?(over?"Просрочен ":"Срок ")+ru(q.deadline):"Без срока",over?' font-weight="700"':"");
+  if(q.status==="review")h+='<g transform="rotate(-10 '+(x+44)+' '+(y+65)+')"><rect x="'+(x+30)+'" y="'+(y+61)+'" width="28" height="7.5" fill="none" stroke="#c0392b" stroke-width=".7"/><text x="'+(x+44)+'" y="'+(y+66.6)+'" text-anchor="middle" font-family="Russo One" font-size="3.8" fill="#c0392b">ПРОВЕРКА</text></g>';
+  return h;
+}
+
+const BOOK_RATIO=88/64;
+function tomeArgs(kind){
+  const GR=lvlRank(),doneN=quests.filter(q=>q.status==="done").length;
+  return kind==="status"?[170,664,64,88,"lthBlue",["СТАТУС","ГИЛЬДИИ"],"LVL "+GR.L.level+" · "+GR.rk]:[790,664,64,88,"lthRed",["АРХИВ"],"заказов: "+doneN];
+}
+function tomeSVG(x,y,w,h,grad,lines,sub){
+  const t0=y-h,cx=x+8+(w-8)/2;
+  let t='<rect x="'+x+'" y="'+t0+'" width="'+w+'" height="'+h+'" rx="3" fill="url(#'+grad+')" stroke="#120a05" stroke-width="1.4"/>'+
+    '<rect x="'+x+'" y="'+t0+'" width="8" height="'+h+'" rx="2" fill="#000" opacity=".3"/>';
+  [0.18,0.5,0.82].forEach(f=>{t+='<rect x="'+x+'" y="'+(t0+h*f-1.6).toFixed(1)+'" width="8" height="3.2" fill="#c9a24a" opacity=".8"/>'});
+  t+='<rect x="'+(x+12)+'" y="'+(t0+6)+'" width="'+(w-17)+'" height="'+(h-12)+'" rx="1.5" fill="none" stroke="#c9a24a" stroke-width="1.2"/>'+
+    '<rect x="'+(x+14.5)+'" y="'+(t0+8.5)+'" width="'+(w-22)+'" height="'+(h-17)+'" rx="1" fill="none" stroke="#c9a24a" stroke-width=".5" opacity=".7"/>'+
+    '<path d="M'+(x+w-.7)+' '+(t0+.7)+'h-8l8 8zM'+(x+w-.7)+' '+(y-.7)+'h-8l8-8z" fill="#c9a24a"/>'+
+    '<path d="M'+cx+' '+(t0+14)+'l3.5 3.5-3.5 3.5-3.5-3.5z" fill="#c9a24a"/>';
+  const n=lines.length,fs=n>1?8.4:11,base=n>1?[t0+h/2-1,t0+h/2+9.5]:[t0+h/2+4];
+  lines.forEach((l,i)=>{t+='<text x="'+cx+'" y="'+(base[i]+.8)+'" text-anchor="middle" font-family="Russo One" font-size="'+fs+'" letter-spacing=".5" fill="#120a05">'+l+'</text>'+
+    '<text x="'+cx+'" y="'+base[i]+'" text-anchor="middle" font-family="Russo One" font-size="'+fs+'" letter-spacing=".5" fill="#e6c88a">'+l+'</text>'});
+  if(sub)t+='<text x="'+cx+'" y="'+(y-13)+'" text-anchor="middle" font-family="JetBrains Mono" font-size="5.6" fill="#d8bf86">'+sub+'</text>';
+  return t;
+}
+const JOURNAL_COVER='<svg viewBox="0 0 64 88" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="jcovg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a2a24"/><stop offset=".55" stop-color="#5a1c1c"/><stop offset="1" stop-color="#3e1414"/></linearGradient></defs>'+
+  '<rect x=".7" y=".7" width="62.6" height="86.6" rx="3" fill="url(#jcovg)" stroke="#120a05" stroke-width="1.4"/><rect x=".7" y=".7" width="8" height="86.6" rx="2" fill="#000" opacity=".28"/>'+
+  '<rect x="12" y="7" width="45" height="74" rx="1" fill="none" stroke="#c9a24a" stroke-width="1.2"/><path d="M12 81l6-9 6 9zM57 81l-6-9-6 9z" fill="#c9a24a"/>'+
+  '<text x="34.5" y="46.8" text-anchor="middle" font-family="Russo One" font-size="8.4" letter-spacing="1" fill="#1a0a06">ЖУРНАЛ</text><text x="34.5" y="46" text-anchor="middle" font-family="Russo One" font-size="8.4" letter-spacing="1" fill="#e6c88a">ЖУРНАЛ</text>'+
+  '<text x="34.5" y="55" text-anchor="middle" font-family="Russo One" font-size="5" letter-spacing="1" fill="#c9a24a">смены</text></svg>';
+function drawHall(){
+  const fresh=quests.filter(q=>q.status==="board").sort(sortQ);
+  const work=quests.filter(q=>q.status==="active").sort(sortQ);
+  const free=advs.filter(a=>activeOf(a).length===0);
+  const busy=advs.length-free.length;
+  const pend=!reports().some(d=>d.id===yesterday());
+  const doneN=quests.filter(q=>q.status==="done").length;
+  const GR=lvlRank();
+  const pc={E:"#6b7a92",D:"#2f8a57",C:"#2a6fb0",B:"#6c45c9",A:"#c25e1c",S:"#a87d10"};
+  let seed=11;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const OL='stroke="#1d1209" stroke-width="1.5"';
+  const paper=(q,x,y,i,right)=>{const a=advById(q.adv),rot=((i*7)%9-4);
+    return '<g data-paper="'+esc(q.id)+'" data-rot="'+rot+'" aria-label="Заказ: '+esc(q.title)+'" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')"><rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" fill="#e9dfc6"/>'+
+    '<g class="lo"><rect x="'+(x+8)+'" y="'+(y+30)+'" width="44" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+38)+'" width="34" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+46)+'" width="40" height="3" fill="#8a7754"/>'+
+    '<text x="'+(x+14)+'" y="'+(y+24)+'" font-family="Russo One" font-size="16" fill="'+pc[q.rank]+'">'+q.rank+'</text>'+
+    (right&&q.kind!=="simple"?'<rect x="'+(x+8)+'" y="'+(y+58)+'" width="44" height="5" fill="#cdbf9f"/><rect x="'+(x+8)+'" y="'+(y+58)+'" width="'+(44*progressOf(q)).toFixed(0)+'" height="5" fill="#2a6fb0"/>':"")+
+    (q.status==="review"?'<g transform="rotate(-14 '+(x+30)+' '+(y+52)+')"><rect x="'+(x+4)+'" y="'+(y+44)+'" width="52" height="16" fill="none" stroke="#c0392b" stroke-width="2"/><text x="'+(x+30)+'" y="'+(y+56)+'" text-anchor="middle" font-family="Russo One" font-size="9" fill="#c0392b">ПРОВЕРКА</text></g>':"")+
+    (isOver(q)?'<circle cx="'+(x+50)+'" cy="'+(y+14)+'" r="7" fill="#c0392b"/><text x="'+(x+50)+'" y="'+(y+18)+'" text-anchor="middle" font-family="Russo One" font-size="11" fill="#fff">!</text>':"")+'</g>'+
+    '<g class="hi">'+paperHi(q,x,y)+'</g>'+
+    ((q.attachments||[]).length?'<path d="M'+(x+50)+' '+(y-5)+'v15a3.2 3.2 0 0 0 6.4 0v-13a2 2 0 0 0-4 0v11" fill="none" stroke="#b9c0cc" stroke-width="1.4" stroke-linecap="round"/>':'')+
+    '<circle cx="'+(x+30)+'" cy="'+(y+3)+'" r="'+(4)+'" fill="'+(right&&a?advColor(a):"#c0392b")+'"/></g>'};
+  const plusPaper=(x,y,i)=>{const rot=((i*7)%9-4);
+    return '<g data-newpaper="1" data-rot="'+rot+'" aria-label="Новый заказ" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')"><g class="hi">'+
+    '<rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" rx="1" fill="#1a100a" fill-opacity=".22" stroke="#e9dfc6" stroke-opacity=".45" stroke-width="1" stroke-dasharray="4 3"/>'+
+    '<line x1="'+(x+30)+'" y1="'+(y+24)+'" x2="'+(x+30)+'" y2="'+(y+48)+'" stroke="#e9dfc6" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>'+
+    '<line x1="'+(x+18)+'" y1="'+(y+36)+'" x2="'+(x+42)+'" y2="'+(y+36)+'" stroke="#e9dfc6" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/>'+
+    '<text x="'+(x+30)+'" y="'+(y+62)+'" text-anchor="middle" font-family="Exo 2" font-size="5" fill="#e9dfc6" fill-opacity=".6">Новый заказ</text></g></g>'};
+  const grid=(list,x0,right)=>{let s="";const plus=!right&&canWrite,cap=plus?5:6;
+    list.slice(0,cap).forEach((q,i)=>{s+=paper(q,x0+(i%3)*68,108+Math.floor(i/3)*88,i,right)});
+    if(plus){const i=Math.min(list.length,cap);s+=plusPaper(x0+(i%3)*68,108+Math.floor(i/3)*88,i)}
+    if(list.length>cap)s+='<text data-more="'+(right?"work":"board")+'" x="'+(x0+100)+'" y="296" text-anchor="middle" font-family="JetBrains Mono" font-size="13" fill="#e9dfc6">+ ещё '+(list.length-cap)+'</text>';
+    if(!list.length&&!plus)s+='<text x="'+(x0+100)+'" y="190" text-anchor="middle" font-family="Exo 2" font-size="15" fill="#b49a73">'+(right?"никто не работает":"заказов нет")+'</text>';return s};
+  /* ---- wall ---- */
+  let wall='<rect width="1200" height="432" fill="url(#wallg)"/>';
+  for(let x=0;x<1200;x+=60){
+    wall+='<rect x="'+x+'" y="24" width="58" height="274" fill="url(#plank)" opacity="'+(0.7+rnd()*0.3).toFixed(2)+'"/>';
+    for(let k=0;k<3;k++){const gx=x+6+rnd()*46;wall+='<path d="M'+gx.toFixed(1)+' 24q'+(rnd()*6-3).toFixed(1)+' 137 '+(rnd()*4-2).toFixed(1)+' 274" stroke="#1a110a" stroke-width=".8" fill="none" opacity=".55"/>'}
+    if(rnd()>.55)wall+='<ellipse cx="'+(x+14+rnd()*30).toFixed(0)+'" cy="'+(60+rnd()*200).toFixed(0)+'" rx="3.5" ry="7" fill="#1a110a" opacity=".6"/>';
+    wall+='<circle cx="'+(x+9)+'" cy="36" r="1.8" fill="#0f0905"/><circle cx="'+(x+49)+'" cy="36" r="1.8" fill="#0f0905"/><circle cx="'+(x+9)+'" cy="286" r="1.8" fill="#0f0905"/><circle cx="'+(x+49)+'" cy="286" r="1.8" fill="#0f0905"/>';
+  }
+  wall+='<rect x="0" y="300" width="1200" height="132" fill="#1f140d"/>';
+  for(let x=0;x<1200;x+=100)wall+='<rect x="'+(x+8)+'" y="316" width="84" height="104" rx="2" fill="#26180f" stroke="#140d07" stroke-width="2"/><path d="M'+(x+11)+' 319h78" stroke="#3a281a"/>';
+  wall+='<rect x="0" y="294" width="1200" height="11" fill="#4a311c"/><rect x="0" y="294" width="1200" height="2" fill="#7a5532"/><rect x="0" y="305" width="1200" height="4" fill="#0d0805" opacity=".55"/>';
+  wall+='<rect x="0" y="0" width="1200" height="26" fill="#170f09"/><rect x="0" y="24" width="1200" height="3" fill="#2c1d10"/>';
+  for(let x=40;x<1200;x+=180)wall+='<rect x="'+x+'" y="0" width="22" height="30" fill="#120b06"/>';
+
+  /* ---- floor ---- */
+  let floor='<polygon points="0,432 1200,432 1200,500 0,500" fill="url(#floorg)"/>';
+  for(let i=0;i<=24;i++){const x=i*50;floor+='<line x1="'+x+'" y1="432" x2="'+(600+(x-600)*1.35).toFixed(0)+'" y2="500" stroke="#1a110a" stroke-width="1.5" opacity=".7"/>'}
+  floor+='<line x1="0" y1="455" x2="1200" y2="455" stroke="#1a110a" opacity=".35"/><line x1="0" y1="479" x2="1200" y2="479" stroke="#1a110a" opacity=".35"/>';
+  floor+='<polygon points="62,440 590,440 640,499 12,499" fill="#4e1919"/><polygon points="76,444 576,444 620,495 32,495" fill="none" stroke="#c9a24a" stroke-width="1.6" opacity=".55"/>'+
+    '<polygon points="92,448 560,448 598,491 54,491" fill="none" stroke="#7a2a2a" stroke-width="3"/>'+
+    '<path d="M240 452l14 8-14 8-14-8z M326 452l14 8-14 8-14-8z M412 452l14 8-14 8-14-8z" fill="#7a2a2a"/>';
+  floor+='<rect x="0" y="428" width="1200" height="6" fill="#0f0905"/>';
+
+  /* ---- props ---- */
+  const lantern=(x,y,d)=>'<line x1="'+x+'" y1="26" x2="'+x+'" y2="'+(y-14)+'" stroke="#0f0905" stroke-width="2"/>'+
+    '<path d="M'+(x-10)+' '+(y-14)+'h20l5 7h-30z" fill="#2c1d10"/><rect x="'+(x-12)+'" y="'+(y-7)+'" width="24" height="30" fill="#ffcf6b" stroke="#2c1d10" stroke-width="3"/>'+
+    '<line x1="'+x+'" y1="'+(y-7)+'" x2="'+x+'" y2="'+(y+23)+'" stroke="#2c1d10" stroke-width="2"/><path d="M'+(x-3)+' '+(y+15)+'q3-13 6 0z" fill="#fff4cc" class="flick" style="animation-delay:'+d+'s"/>'+
+    '<path d="M'+(x-15)+' '+(y+23)+'h30l-5 6h-20z" fill="#2c1d10"/>';
+  const mug=(x,y)=>'<path d="M'+(x+9)+' '+(y-11)+'q9 1 8 7q-1 5-8 5" fill="none" stroke="#5a3a1a" stroke-width="2.6"/><rect x="'+(x-8)+'" y="'+(y-15)+'" width="17" height="16" rx="2" fill="#8a5a2b" '+OL+'/><rect x="'+(x-8)+'" y="'+(y-10)+'" width="17" height="2" fill="#5a3a1a"/><ellipse cx="'+(x+.5)+'" cy="'+(y-15)+'" rx="9" ry="3.2" fill="#f3e6cf"/>';
+  const candle=(x,y,d)=>'<circle cx="'+x+'" cy="'+(y-22)+'" r="30" fill="url(#lamp)" class="flick" style="animation-delay:'+d+'s"/><ellipse cx="'+x+'" cy="'+y+'" rx="9" ry="3" fill="#8a6a2a" '+OL+'/><rect x="'+(x-3.5)+'" y="'+(y-17)+'" width="7" height="17" fill="#efe6d0" stroke="#1d1209"/><path d="M'+x+' '+(y-30)+'q5 7 0 12q-5-5 0-12z" fill="#ffcf6b" class="flick" style="animation-delay:'+d+'s"/>';
+  const accessory=(a,x,y)=>{
+    if(a.cls==="chron")return '<path d="M'+(x-18)+' '+(y+2)+'l18-4 18 4-3-10-15-3-15 3z" fill="#efe4c8" '+OL+'/><path d="M'+x+' '+(y-2)+'v-12" stroke="#8a7754"/><path d="M'+(x-13)+' '+(y-6)+'l9-2M'+(x+4)+' '+(y-8)+'l9 2" stroke="#8a7754"/>';
+    if(a.cls==="eng"){let t="";for(let k=0;k<8;k++){const an=k*Math.PI/4;t+='<rect x="'+(x-2.5)+'" y="'+(y-19)+'" width="5" height="6" fill="#8d96a3" transform="rotate('+(k*45)+' '+x+' '+(y-9)+')"/>'}
+      return t+'<circle cx="'+x+'" cy="'+(y-9)+'" r="8" fill="#8d96a3" '+OL+'/><circle cx="'+x+'" cy="'+(y-9)+'" r="3" fill="#3a3f47"/>'}
+    if(a.cls==="sci")return '<path d="M'+(x-4)+' '+(y-22)+'v8l-8 12a4 4 0 0 0 3 5h18a4 4 0 0 0 3-5l-8-12v-8z" fill="#cfe8ff" fill-opacity=".55" '+OL+'/><path d="M'+(x-10)+' '+(y-4)+'a4 4 0 0 0 2 3h16a4 4 0 0 0 2-3l-4-6h-12z" fill="#5fd28f"/><circle cx="'+(x+2)+'" cy="'+(y-12)+'" r="1.5" fill="#5fd28f"/>';
+    return "";
+  };
+  const chairFront=(x,S)=>({back:
+    '<ellipse cx="'+x+'" cy="'+(S+47)+'" rx="42" ry="5" fill="#000" opacity=".45"/>'+
+    '<rect x="'+(x-31)+'" y="'+(S-74)+'" width="7" height="116" rx="2" fill="#a06838" '+OL+'/><rect x="'+(x+24)+'" y="'+(S-74)+'" width="7" height="116" rx="2" fill="#a06838" '+OL+'/>'+
+    [-12,-2.5,7].map(d=>'<rect x="'+(x+d)+'" y="'+(S-62)+'" width="5" height="26" fill="#a06838" '+OL+'/>').join("")+
+    '<path d="M'+(x-35)+' '+(S-70)+'q35-12 70 0v9q-35-12-70 0z" fill="#cf9558" '+OL+'/><path d="M'+(x-31)+' '+(S-38)+'h62v6h-62z" fill="#b07440" '+OL+'/>'+
+    '<path d="M'+(x-30)+' '+(S-6)+'h60l5 6h-70z" fill="#cf9558" '+OL+'/><rect x="'+(x-35)+'" y="'+S+'" width="70" height="7" fill="#7a4b26" '+OL+'/>',
+    front:'<rect x="'+(x-35)+'" y="'+(S+7)+'" width="7" height="40" fill="#b07440" '+OL+'/><rect x="'+(x+28)+'" y="'+(S+7)+'" width="7" height="40" fill="#b07440" '+OL+'/>'});
+  const legs=(x,S,c)=>'<path d="M'+(x-21)+' '+(S-4)+'h42v10q0 7-7 7h-28q-7 0-7-7z" fill="'+c+'" '+OL+'/><path d="M'+(x-21)+' '+(S-4)+'h42v6h-42z" fill="#000" opacity=".2"/>'+
+    '<rect x="'+(x-15)+'" y="'+(S+12)+'" width="10" height="28" fill="#3b2c22" '+OL+'/><rect x="'+(x+5)+'" y="'+(S+12)+'" width="10" height="28" fill="#3b2c22" '+OL+'/>'+
+    '<path d="M'+(x-19)+' '+(S+47)+'q0-9 6-9h9v9z" fill="#1d1209" '+OL+'/><path d="M'+(x+19)+' '+(S+47)+'q0-9-6-9h-9v9z" fill="#1d1209" '+OL+'/>';
+  const person=(a,x,y)=>{const c=advColor(a);let head="";
+    if(a.cls==="chron")head='<path d="M'+(x-19)+' '+(y+8)+'Q'+(x-20)+' '+(y-23)+' '+x+' '+(y-22)+'Q'+(x+20)+' '+(y-23)+' '+(x+19)+' '+(y+8)+'Q'+(x+13)+' '+(y-12)+' '+x+' '+(y-12)+'Q'+(x-13)+' '+(y-12)+' '+(x-19)+' '+(y+8)+'Z" fill="'+c+'" '+OL+'/>';
+    else if(a.cls==="eng")head='<path d="M'+(x-15)+' '+(y-3)+'Q'+x+' '+(y-23)+' '+(x+15)+' '+(y-3)+'Q'+x+' '+(y-11)+' '+(x-15)+' '+(y-3)+'Z" fill="#5a3a20" '+OL+'/><rect x="'+(x-15)+'" y="'+(y-9)+'" width="30" height="3" fill="#3a3a3a"/><circle cx="'+(x-6)+'" cy="'+(y-8)+'" r="4.2" fill="#9fd4ff" stroke="#3a3a3a" stroke-width="2"/><circle cx="'+(x+6)+'" cy="'+(y-8)+'" r="4.2" fill="#9fd4ff" stroke="#3a3a3a" stroke-width="2"/>';
+    else if(a.cls==="sci")head='<path d="M'+(x-16)+' '+(y-1)+'q-5-10 4-14q4-9 12-4q8-6 12 4q9 4 4 14q-6-8-16-8t-16 8z" fill="#dcdcdc" '+OL+'/><circle cx="'+(x-5)+'" cy="'+(y+1)+'" r="4" fill="none" stroke="#3a3a3a" stroke-width="1.3"/><circle cx="'+(x+5)+'" cy="'+(y+1)+'" r="4" fill="none" stroke="#3a3a3a" stroke-width="1.3"/>';
+    else head='<path d="M'+(x-16)+' '+(y-1)+'Q'+x+' '+(y-26)+' '+(x+16)+' '+(y-1)+'Q'+x+' '+(y-10)+' '+(x-16)+' '+(y-1)+'Z" fill="'+c+'"/>';
+    return '<path d="M'+(x-27)+' '+(y+74)+'Q'+(x-27)+' '+(y+20)+' '+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'Z" fill="'+c+'" '+OL+'/>'+
+      '<path d="M'+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'H'+(x+10)+'Q'+(x+12)+' '+(y+32)+' '+x+' '+(y+15)+'Z" fill="#000" opacity=".22"/>'+
+      '<path d="M'+(x-9)+' '+(y+17)+'L'+x+' '+(y+34)+'L'+(x+9)+' '+(y+17)+'" fill="none" stroke="#1d1209" stroke-width="1.4" opacity=".6"/><circle cx="'+x+'" cy="'+(y+40)+'" r="2.6" fill="#c9a24a"/>'+
+      '<circle cx="'+x+'" cy="'+y+'" r="15" fill="#e3c9a6" stroke="#1d1209" stroke-width="1.2"/><circle cx="'+(x-5)+'" cy="'+(y+1)+'" r="1.6" fill="#2b2116"/><circle cx="'+(x+5)+'" cy="'+(y+1)+'" r="1.6" fill="#2b2116"/>'+
+      '<path d="M'+(x-4)+' '+(y+7)+'q4 3 8 0" stroke="#8a5a3a" stroke-width="1.2" fill="none"/>'+head+
+      '<text x="'+x+'" y="'+(y-30)+'" text-anchor="middle" font-family="Exo 2" font-weight="600" font-size="13" fill="#f3e6cf" stroke="#120b06" stroke-width="3" paint-order="stroke">'+esc(a.name)+'</text>';
+  };
+  const table=(cx,cy,rx,ry)=>
+    '<path d="M'+(cx-8)+' '+(cy+10)+'h16l5 42h-26z" fill="#4a2f19" '+OL+'/><ellipse cx="'+cx+'" cy="'+(cy+53)+'" rx="27" ry="5" fill="#3a2414" '+OL+'/>'+
+    '<ellipse cx="'+cx+'" cy="'+(cy+6)+'" rx="'+rx+'" ry="'+ry+'" fill="#5a3a20" '+OL+'/><ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#tabletop)" '+OL+'/>'+
+    '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.7)+'" ry="'+(ry*.6)+'" fill="none" stroke="#b08050" opacity=".35"/><ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.38)+'" ry="'+(ry*.32)+'" fill="none" stroke="#b08050" opacity=".3"/>';
+
+  /* ---- adventurers' corner ---- */
+  const S=404,TX=300,roster=advs.slice().sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"")||a.id.localeCompare(b.id));
+  const n=roster.length,xs=n===1?[TX]:n===2?[245,355]:roster.map((_,i)=>TX-90+180*i/(n-1));
+  let corner='';
+  roster.forEach((a,i)=>{const x=xs[i],c=chairFront(x,S),sit=activeOf(a).length===0;corner+=c.back+(sit?person(a,x,S-72)+legs(x,S,advColor(a)):'')+c.front});
+  corner+='<ellipse cx="'+TX+'" cy="446" rx="98" ry="6" fill="#000" opacity=".45"/><g class="olt">'+table(TX,388,140,22)+'</g>';
+  corner+=candle(TX-80,388,.4)+mug(TX+82,390);
+  const dx=n===1?[TX]:roster.map((_,i)=>TX-58+116*i/Math.max(1,n-1));
+  roster.forEach((a,i)=>{corner+='<g transform="translate('+dx[i].toFixed(0)+' 405) rotate('+((i*13)%9-4)+')"><path d="M-19 -5L16 -6L20 5L-15 6Z" fill="#e9dfc6" stroke="#6b5a40" stroke-width=".9"/><path d="M-19 -5L-6 -5.5L-5.2 -1L-17.5 -.6Z" fill="'+advColor(a)+'"/><path d="M-9 1h18M-8 3.4h14" stroke="#a8956d" stroke-width=".8"/></g>'});
+  roster.forEach((a,i)=>{if(activeOf(a).length===0)corner+=accessory(a,xs[i],389)});
+  if(n&&!free.length)corner+='<text x="'+TX+'" y="300" text-anchor="middle" font-family="Exo 2" font-size="15" fill="#b49a73" stroke="#120b06" stroke-width="3" paint-order="stroke">все на заданиях</text>';
+
+  /* ---- counter top ---- */
+  let counter='<rect x="0" y="500" width="1200" height="66" fill="url(#countertop)"/>';
+  for(let i=0;i<5;i++)counter+='<line x1="0" y1="'+(513+i*11)+'" x2="1200" y2="'+(513+i*11)+'" stroke="#5a381d" opacity=".55"/>';
+  for(let i=0;i<7;i++)counter+='<ellipse cx="'+(60+rnd()*1080).toFixed(0)+'" cy="'+(515+rnd()*40).toFixed(0)+'" rx="'+(8+rnd()*10).toFixed(0)+'" ry="2.2" fill="none" stroke="#5a381d" opacity=".5"/>';
+  counter+='<rect x="0" y="495" width="1200" height="9" fill="#a8743f"/><rect x="0" y="495" width="1200" height="2" fill="#d09a5c"/><rect x="0" y="504" width="1200" height="3" fill="#3a2414" opacity=".5"/>';
+  counter+='<ellipse cx="742" cy="550" rx="17" ry="4" fill="#000" opacity=".45"/>'+
+    '<path d="M727 549q-3-15 7-19h16q10 4 7 19z" fill="#1d2433" '+OL+'/><path d="M731 545q-1-8 4-11" stroke="#56628a" stroke-width="1.6" fill="none"/>'+
+    '<rect x="736.5" y="523" width="11" height="8" rx="1.5" fill="#2c3448" '+OL+'/><ellipse cx="742" cy="523.5" rx="5" ry="1.6" fill="#07080c"/>'+
+    '<path d="M744 518C744 497 758 480 776 470C773 489 762 506 746 519Z" fill="#efe6d0" stroke="#8a7754" stroke-width=".9"/>'+
+    '<path d="M749 509l-4-3M753 502l-5-3M757 495l-4-4M762 488l-4-4M767 481l-3-4M752 507l5-1M757 500l5-2M762 492l5-2M767 485l4-2" stroke="#b9a57c" stroke-width=".8"/>'+
+    '<path d="M742 524L777 469" stroke="#cdbb93" stroke-width="1.5" stroke-linecap="round"/>';
+  counter+='<g class="hot bell" tabindex="0" role="button" data-bell aria-label="Звонок на стойке"><ellipse cx="420" cy="540" rx="22" ry="5" fill="#000" opacity=".4"/><g class="olt"><ellipse cx="420" cy="537" rx="20" ry="5" fill="#6b4a1a" '+OL+'/><path d="M405 536q0-24 15-24t15 24z" fill="#d4ad52" '+OL+'/><path d="M411 526q3-9 9-10" stroke="#fff3c4" stroke-width="2" fill="none" opacity=".8"/><rect x="417" y="506" width="6" height="7" rx="2" fill="#a07f30" '+OL+'/></g></g>';
+  let coins="";for(let i=0;i<5;i++)coins+='<ellipse cx="820" cy="'+(544-i*4)+'" rx="10" ry="3.5" fill="#d4ad52" stroke="#7a5a1a"/>';
+
+  counter+='<rect x="0" y="560" width="1200" height="8" fill="#3a2414"/>';
+
+  /* ---- closed shift journal on the counter ---- */
+  /* cover title drawn in the journal's perspective: squashed in depth, letters lean toward the far edge */
+  let jtitle='';[..."ЖУРНАЛ"].forEach((ch,i)=>{const x=600+(i-2.5)*15,t=(.516*(x-600)/80).toFixed(3);
+    jtitle+='<text transform="translate('+x.toFixed(1)+' 534.4) matrix(1 0 '+t+' .6 0 0)" text-anchor="middle" font-family="Russo One" font-size="15" fill="#1a0a06">'+ch+'</text>'+
+      '<text transform="translate('+x.toFixed(1)+' 533.6) matrix(1 0 '+t+' .6 0 0)" text-anchor="middle" font-family="Russo One" font-size="15" fill="#e6c88a">'+ch+'</text>'});
+  const journal='<g class="hot" tabindex="0" role="button" data-open="ledger" aria-label="Журнал смены: '+(pend?"отчёт за вчера не записан":"отчёт за вчера записан")+'">'+
+    
+    (pend?'<ellipse cx="600" cy="538" rx="108" ry="32" fill="#4fb3ff" opacity=".3" class="glow"/>':'')+
+    '<ellipse cx="600" cy="558" rx="88" ry="6" fill="#000" opacity=".45"/>'+
+    '<g class="olt"><path d="M518 548H682V556H518Z" fill="#3e1414" '+OL+'/>'+
+    '<path d="M521 543H679V550H521Z" fill="#efe4c8" stroke="#8a7754"/><path d="M524 546H676" stroke="#cdbf9f"/>'+
+    '<path d="M520 545L536 514H664L680 545Z" fill="url(#lthJ)" '+OL+'/>'+
+    '<path d="M532 540L544 518H656L668 540Z" fill="none" stroke="#c9a24a" stroke-width="1.6"/>'+
+    '<path d="M520 545L536 514L544 514L529 545Z" fill="#000" opacity=".28"/>'+
+    '<path d="M522 545l5-10 6 10zM678 545l-5-10-6 10z" fill="#c9a24a"/>'+
+    jtitle+
+    '<path d="M640 550v16l-4-4-4 4v-16z" fill="#b02a2a"/></g></g>';
+
+  /* ---- shelves under the counter, one book on each ---- */
+  let shelves='<rect x="0" y="566" width="1200" height="114" fill="#170f09"/>';
+  for(let x=0;x<1200;x+=40)shelves+='<line x1="'+x+'" y1="566" x2="'+x+'" y2="666" stroke="#0e0905" opacity=".7"/>';
+  shelves+='<rect x="0" y="566" width="1200" height="26" fill="url(#shelfshade)"/>'+
+    '<rect x="0" y="664" width="1200" height="16" fill="#5a3a20"/><rect x="0" y="664" width="1200" height="2" fill="#8a5c33"/><rect x="0" y="672" width="1200" height="8" fill="#2a1a0e"/>'+
+    '<rect x="592" y="566" width="16" height="114" fill="#3a2414" '+OL+'/><rect x="0" y="566" width="8" height="114" fill="#3a2414"/><rect x="1192" y="566" width="8" height="114" fill="#3a2414"/>';
+  const scroll=(x,y,rot,L)=>{const r=7,a=x-L/2,b=x+L/2;
+    return '<g transform="rotate('+rot+' '+x+' '+y+')">'+
+      '<rect x="'+(a-7)+'" y="'+(y-2)+'" width="'+(L+14)+'" height="4" rx="1.5" fill="#6b4122" '+OL+'/><circle cx="'+(a-8)+'" cy="'+y+'" r="3.2" fill="#8a5a30" '+OL+'/><circle cx="'+(b+8)+'" cy="'+y+'" r="3.2" fill="#8a5a30" '+OL+'/>'+
+      '<rect x="'+a+'" y="'+(y-r)+'" width="'+L+'" height="'+(2*r)+'" fill="url(#scrollg)" stroke="#8a7754" stroke-width=".9"/>'+
+      '<path d="M'+(a+6)+' '+(y-r+2.5)+'H'+(b-6)+'" stroke="#fffaf0" stroke-width="1.2" opacity=".7"/>'+
+      '<ellipse cx="'+a+'" cy="'+y+'" rx="3.4" ry="'+r+'" fill="#d9c9a0" stroke="#8a7754" stroke-width=".9"/>'+
+      '<ellipse cx="'+b+'" cy="'+y+'" rx="3.4" ry="'+r+'" fill="#efe4c8" stroke="#8a7754" stroke-width=".9"/><ellipse cx="'+b+'" cy="'+y+'" rx="2.1" ry="4.4" fill="none" stroke="#a8956d" stroke-width=".7"/><ellipse cx="'+b+'" cy="'+y+'" rx="1" ry="2" fill="none" stroke="#a8956d" stroke-width=".7"/>'+
+      '<rect x="'+(x-3)+'" y="'+(y-r-.5)+'" width="6" height="'+(2*r+1)+'" fill="#a82c2c" stroke="#5a1414" stroke-width=".6"/>'+
+      '<path d="M'+x+' '+(y+r)+'l-5 7M'+x+' '+(y+r)+'l4 8" stroke="#a82c2c" stroke-width="2.2" stroke-linecap="round"/></g>'};
+  let scrolls=scroll(392,648,-6,78)+scroll(470,656,4,70);
+  let papers='';for(let i=0;i<Math.min(9,Math.max(1,doneN));i++)papers+='<rect x="'+(990+(i%2?2:-2))+'" y="'+(658-i*4)+'" width="120" height="5" fill="'+(i%2?"#e3d6b6":"#efe4c8")+'" stroke="#8a7754" stroke-width=".6"/>';
+  papers+='<path d="M1050 '+(658-Math.min(9,Math.max(1,doneN))*4)+'v'+(Math.min(9,Math.max(1,doneN))*4+6)+'" stroke="#a82c2c" stroke-width="2.5"/>';
+  const guildShelf='<g class="hot" tabindex="0" role="button" data-open="guild" aria-label="Книга «Статус гильдии»: уровень '+GR.L.level+', ранг '+GR.rk+'">'+
+    
+'<g class="olt">'+tomeSVG.apply(null,tomeArgs("status"))+'</g>'+scrolls+'</g>';
+  const archShelf='<g class="hot" tabindex="0" role="button" data-open="archive" aria-label="Книга «Архив»: '+doneN+' выполненных заказов">'+
+    
+'<g class="olt">'+tomeSVG.apply(null,tomeArgs("archive"))+'</g>'+papers+'</g>';
+
+  /* ---- window, banner, door, lanterns ---- */
+  const windowG='<rect x="286" y="54" width="208" height="8" rx="4" fill="#5a3a20"/>'+
+    '<rect x="294" y="64" width="192" height="182" fill="#120b06"/><rect x="300" y="70" width="180" height="170" fill="url(#nightwin)"/>'+
+    '<circle cx="440" cy="110" r="16" fill="#eaf3ff" opacity=".9"/><circle cx="330" cy="100" r="1.5" fill="#fff"/><circle cx="360" cy="130" r="1.2" fill="#fff"/><circle cx="410" cy="160" r="1.4" fill="#fff"/><circle cx="460" cy="150" r="1.1" fill="#fff"/>'+
+    '<path d="M300 210L330 190 350 200 380 180 410 196 440 186 480 205V240H300Z" fill="#0b1226"/>'+
+    '<line x1="390" y1="70" x2="390" y2="240" stroke="#3d2816" stroke-width="8"/><line x1="300" y1="155" x2="480" y2="155" stroke="#3d2816" stroke-width="8"/>'+
+    '<rect x="300" y="70" width="180" height="170" fill="none" stroke="#4a311c" stroke-width="10"/>'+
+    '<rect x="284" y="240" width="212" height="14" fill="#5a3a20" '+OL+'/>'+
+    '<path d="M282 60h34q-10 92 2 196h-36z" fill="#5a1e1e" '+OL+'/><path d="M294 62q-4 90 4 192" stroke="#3e1414" stroke-width="2" fill="none"/>'+
+    '<path d="M498 60h-34q10 92-2 196h36z" fill="#5a1e1e" '+OL+'/><path d="M486 62q4 90-4 192" stroke="#3e1414" stroke-width="2" fill="none"/>';
+  const banner='<rect x="506" y="64" width="78" height="7" rx="3.5" fill="#8a6a2a" '+OL+'/>'+
+    '<path d="M515 71h60v134l-30-18-30 18z" fill="#1f3a6b" stroke="#c9a24a" stroke-width="2"/><path d="M521 77h48v116l-24-14-24 14z" fill="none" stroke="#c9a24a" stroke-width=".8" opacity=".7"/>'+
+    '<path d="M530 96l30 52M560 96l-30 52" stroke="#e9dfc6" stroke-width="3.2" stroke-linecap="round"/>'+
+    '<path d="M545 106l17 6v16q0 18-17 26q-17-8-17-26v-16z" fill="#c9a24a" '+OL+'/><text x="545" y="134.5" text-anchor="middle" font-family="Russo One" font-size="20" fill="#1f3a6b">'+GR.rk+'</text>';
+  let doorPl='';for(let k=1;k<4;k++){const x=1116+k*21,yt=152-(k*21)*16/84,yb=428+(k*21)*6/84;doorPl+='<line x1="'+x+'" y1="'+yt.toFixed(1)+'" x2="'+x+'" y2="'+yb.toFixed(1)+'" stroke="#3a2616" stroke-width="2"/>'}
+  const door='<g aria-label="Вход для заказчиков"><polygon points="1102,132 1200,110 1200,446 1102,438" fill="#120b06"/>'+
+    '<polygon points="1116,152 1200,136 1200,434 1116,428" fill="#5a3b22" '+OL+'/>'+doorPl+
+    '<path d="M1116 196l60-8v7l-60 8zM1116 370l60-3v7l-60 3z" fill="#2a2a2e"/><circle cx="1124" cy="200" r="2" fill="#6a6a70"/><circle cx="1124" cy="373" r="2" fill="#6a6a70"/>'+
+    '<circle cx="1131" cy="298" r="7" fill="none" stroke="#c9a24a" stroke-width="2.6"/><circle cx="1131" cy="291" r="2.5" fill="#c9a24a"/>'+
+    '</g>';
+
+  $("#hall").innerHTML=
+  '<defs><radialGradient id="lamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>'+
+  '<linearGradient id="nightwin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a1330"/><stop offset="1" stop-color="#1d3366"/></linearGradient>'+
+  '<linearGradient id="wallg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22160e"/><stop offset="1" stop-color="#1c120b"/></linearGradient>'+
+  '<linearGradient id="plank" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a1b12"/><stop offset=".5" stop-color="#34241a"/><stop offset="1" stop-color="#24170f"/></linearGradient>'+
+  '<linearGradient id="floorg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1c11"/><stop offset="1" stop-color="#4a3220"/></linearGradient>'+
+  '<linearGradient id="tabletop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94643a"/><stop offset="1" stop-color="#6e4627"/></linearGradient>'+
+  '<linearGradient id="countertop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#946238"/><stop offset="1" stop-color="#6b4325"/></linearGradient>'+
+  '<linearGradient id="lthBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f568f"/><stop offset=".55" stop-color="#1c3564"/><stop offset="1" stop-color="#101f3c"/></linearGradient>'+
+  '<linearGradient id="lthRed" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a3a24"/><stop offset=".55" stop-color="#5a2014"/><stop offset="1" stop-color="#34100a"/></linearGradient>'+
+  '<linearGradient id="lthJ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a1c1c"/><stop offset="1" stop-color="#7a2a24"/></linearGradient>'+
+  '<linearGradient id="scrollg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6eed8"/><stop offset=".55" stop-color="#e6d8b4"/><stop offset="1" stop-color="#b09a6c"/></linearGradient>'+
+  '<linearGradient id="shelfshade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".7"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>'+
+  '<filter id="blur"><feGaussianBlur stdDeviation="8"/></filter>'+
+  '<filter id="outline" x="-8%" y="-8%" width="116%" height="116%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="d"/><feFlood flood-color="#f2c14e"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'+
+  wall+floor+
+  '<circle cx="230" cy="90" r="160" fill="url(#lamp)" class="flick"/><circle cx="840" cy="40" r="170" fill="url(#lamp)" class="flick" style="animation-delay:1.3s"/>'+
+  lantern(230,72,0)+windowG+'<g transform="translate(-445 0)">'+banner+'</g>'+door+
+  // board (hot)
+  '<g class="hot" tabindex="0" role="button" data-open="board" aria-label="Доска заказов: '+fresh.length+' новых, '+work.length+' в работе">'+
+  
+  '<rect x="613" y="64" width="460" height="270" fill="#000" opacity=".35"/>'+
+  '<g class="olt"><rect x="610" y="60" width="460" height="270" fill="#5a3f22" stroke="#7a5630" stroke-width="10"/>'+
+  '<rect x="616" y="66" width="448" height="258" fill="#6b4b2a"/></g>'+
+  '<line x1="840" y1="70" x2="840" y2="320" stroke="#3d2816" stroke-width="4" stroke-dasharray="8 6"/>'+
+  '<text x="727" y="94" text-anchor="middle" font-family="Russo One" font-size="15" fill="#f3e6cf" letter-spacing="2">НОВЫЕ · '+fresh.length+'</text>'+
+  '<text x="953" y="94" text-anchor="middle" font-family="Russo One" font-size="15" fill="#f3e6cf" letter-spacing="2">В РАБОТЕ · '+work.length+'</text>'+
+  grid(fresh,628,false)+grid(work,852,true)+
+  '<g class="sign" aria-hidden="true"><rect x="731" y="30" width="224" height="28" rx="3" fill="#000" opacity=".35"/>'+
+  '<rect x="728" y="26" width="224" height="28" rx="3" fill="#4a311c" stroke="#2c1d10" stroke-width="3"/><rect x="735" y="31" width="210" height="18" rx="2" fill="none" stroke="#6b4a2a"/>'+
+  '<circle cx="740" cy="40" r="2" fill="#8a6a2a"/><circle cx="940" cy="40" r="2" fill="#8a6a2a"/>'+
+  '<text x="840" y="47" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#1a110b">ДОСКА ЗАКАЗОВ</text>'+
+  '<text x="840" y="46" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#e6c88a">ДОСКА ЗАКАЗОВ</text></g></g>'+
+  // adventurers' tables (hot)
+  '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Столы авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
+  corner+'</g>'+
+  counter+journal+shelves+guildShelf+archShelf;
+}
+
+/* ---------- Modals ---------- */
+function openModal(kind,arg){if(kind==="board"){openBoard();return}if(kind==="new"){openBoard(openNewSheet);return}if(kind==="advs"){openScene("table");return}if(kind==="adv"){openScene("table",()=>openSheet(arg,null,"view","adv"));return}if(kind==="hire"){openScene("table",()=>openSheet(null,null,"hire","adv"));return}if(kind==="guild"){openScene("status");return}if(kind==="archive"){openScene("archive");return}if(kind==="ledger"){openScene("journal");return}modalState={kind,arg};renderModal();const m=$("#modal");m.hidden=false;setTimeout(()=>{const f=m.querySelector("textarea,input,.tab,button.paper,button.adv,button.btn");f&&f.focus()},30)}
+function closeModal(){modalState=null;$("#modal").hidden=true;$("#modal").innerHTML=""}
+function shell(tag,title,body){return '<section class="win" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="win-h"><span class="tag">'+tag+'</span><h2>'+esc(title)+'</h2><button class="x" data-close aria-label="Закрыть">×</button></div><div class="win-b">'+body+'</div></section>'}
+const PAPER_RC={E:"#5d6b80",D:"#2f7a4f",C:"#1f5f9e",B:"#6c45c9",A:"#b5541a",S:"#8a6410"};
+function bigPaper(q,i){
+  const a=advById(q.adv),p=progressOf(q),over=isOver(q),rot=(((i*37)%7)-3)*0.6;
+  let prog="";
+  if(q.kind!=="simple")prog='<span class="pbar"><i style="width:'+(p*100).toFixed(0)+'%"></i></span><span class="meta">'+(q.kind==="counter"?"Прогресс: ":"Пункты: ")+rightText(q)+' · '+Math.round(p*100)+'%</span>';
+  return '<button class="paper" data-paper="'+esc(q.id)+'" style="--pin:'+(a?advColor(a):"#c0392b")+';--rot:'+rot.toFixed(1)+'deg" aria-label="Заказ: '+esc(q.title)+'">'+
+    (q.status==="review"?'<span class="stamp">ЖДЁТ ПОДТВЕРЖДЕНИЯ</span>':"")+
+    '<span class="meta"><span class="prk" style="color:'+PAPER_RC[q.rank]+'">'+esc(q.rank)+'</span><span>'+KIND[q.kind]+' · '+(RANK_XP[q.rank]||10)+' XP</span></span>'+
+    '<b>'+esc(q.title)+'</b>'+(q.desc?'<span class="desc2">'+esc(q.desc)+'</span>':"")+prog+
+    '<span class="meta">'+(a?'<span class="dot" style="background:'+advColor(a)+'"></span>'+esc(a.name)+' · '+esc(advCls(a).n):'Исполнитель не назначен')+'</span>'+
+    '<span class="meta">'+(q.deadline?'<span class="'+(over?"late":"")+'">'+(over?"Просрочен: ":"Срок: ")+ru(q.deadline)+'</span>':"Без срока")+'</span></button>';
+}
+const fmtMin=m=>{m=+m||0;if(!m)return"";const h=Math.floor(m/60),r=m%60;return(h?h+" ч":"")+(h&&r?" ":"")+(r?r+" мин":"")};
+const pl=(n,f)=>{const a=n%10,b=n%100;return f[a===1&&b!==11?0:a>=2&&a<=4&&(b<12||b>14)?1:2]};
+const fmtLong=m=>{m=+m||0;if(!m)return"";const h=Math.floor(m/60),r=m%60;return "~ "+[h?h+" "+pl(h,["час","часа","часов"]):"",r?r+" "+pl(r,["минута","минуты","минут"]):""].filter(Boolean).join(" ")};
+const safeUrl=u=>/^https?:\/\//i.test(u)?u:"https://"+u;
+let pendingCheck=null,linkAdd={};
+function segBar(q){
+  const p=progressOf(q);
+  if(q.kind==="checklist"){const it=q.items||[],n=it.filter(i=>i.d).length;
+    return '<div class="segbar" role="progressbar" aria-valuenow="'+Math.round(p*100)+'" aria-label="Выполнено пунктов: '+n+' из '+it.length+'">'+it.map((_,i)=>'<i class="'+(i<n?"on":"")+'"></i>').join("")+'</div>'}
+  return '<div class="bigbar" role="progressbar" aria-valuenow="'+Math.round(p*100)+'"><i style="width:'+(p*100).toFixed(1)+'%"></i></div>';
+}
+function checkPanel(){
+  const pc=pendingCheck;
+  if(pc.step==="ask")return '<div class="ckp" role="group" aria-label="Журнал смены"><span>Записать это в журнал смены за '+ru(pc.d)+'?</span>'+
+    '<div class="row"><button class="btn pri sm" id="ck-yes" style="flex:0 0 auto">Да</button><button class="btn sm" id="ck-no" style="flex:0 0 auto">Нет</button><button class="btn ghost sm" id="ck-back" style="flex:0 0 auto">← Назад</button></div></div>';
+  const cap=pc.type==="count"?"Записать прогресс: +"+pc.n+" "+esc(pc.unit||""):pc.type==="submit"?"Сдать заказ":"";
+  return '<div class="ckp" role="group" aria-label="Выполнение">'+(cap?'<b>'+cap+'</b>':'')+'<div class="row">'+
+    '<label class="f" style="flex:0 1 90px">Часы<input type="number" id="ck-h" min="0" max="999" value="'+esc(pc.h)+'" placeholder="0"></label>'+
+    '<label class="f" style="flex:0 1 90px">Минуты<input type="number" id="ck-m" min="0" max="59" step="5" value="'+esc(pc.m)+'" placeholder="0"></label>'+
+    '<label class="f" style="flex:1 1 160px">'+(pc.type==="count"?"Когда сделано":"Когда выполнен")+'<input type="date" id="ck-d" value="'+esc(pc.d)+'" max="'+today()+'"></label></div>'+
+    '<div class="small muted">Примерное время работы</div>'+
+    '<div class="row"><button class="btn pri sm" id="ck-ok" style="flex:0 0 auto">Готово</button><button class="btn ghost sm" id="ck-cancel" style="flex:0 0 auto">Отмена</button></div></div>';
+}
+function questBody(q,sheetMode){
+  const p=progressOf(q),over=isOver(q),a=advById(q.adv),editable=canWrite&&q.status==="active",open=canWrite&&q.status!=="done";
+  let body='<div class="state">'+(sheetMode?'':'<span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><span class="pill info">'+STATUS[q.status]+'</span>')+(over?'<span class="pill bad">ПРОСРОЧЕН</span>':"")+'<span class="small muted">Ранг '+esc(q.rank)+' · '+KIND[q.kind]+' · награда '+(RANK_XP[q.rank]||10)+' XP</span></div>';
+  if(q.desc)body+='<p class="desc">'+esc(q.desc)+'</p>';
+  const cell=(k,v,cls)=>'<div><small>'+k+'</small><b'+(cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
+  body+='<div class="kv kv1"><div><small>Исполнитель</small><b style="color:'+(a?advColor(a):"var(--muted)")+'">'+(a?esc(a.name)+" · "+esc(advCls(a).n):"не назначен")+'</b></div>'+
+    cell("Срок",q.deadline?ru(q.deadline):"не задан",over?"over":"")+
+    cell("Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-")+
+    cell("Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"не начат")+
+    (q.doneAt?cell("Выполнен",ru(q.doneAt.slice(0,10))):cell("Прогресс",Math.round(p*100)+"%"))+'</div>';
+  if(q.kind!=="simple")body+=segBar(q);
+  if(q.kind==="counter"){
+    body+='<div class="small muted">'+(+q.current||0)+' из '+(+q.target||0)+' '+esc(q.unit||"")+'</div>';
+    const pcc=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="count"?pendingCheck:null;
+    if(editable)body+=pcc?checkPanel():'<div class="row"><label class="f" style="flex:0 1 120px">Сделано<input type="number" id="c-delta" min="1" placeholder="12"></label><label class="f">Заметка<input type="text" id="c-note" maxlength="140" placeholder="Например: глава 4"></label><button class="btn pri" id="c-add" style="flex:0 0 auto">Записать</button></div>';
+  }
+  if(q.kind==="checklist")body+='<div>'+(q.items||[]).map((it,i)=>{
+    const pend=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="item"&&pendingCheck.i===i;
+    const meta=it.d?[fmtLong(it.min),it.at?ru(it.at):""].filter(Boolean).join(" · "):"";
+    return '<label class="check'+(it.d?" done":"")+'"><input type="checkbox" data-item="'+i+'"'+(it.d||pend?" checked":"")+(editable?"":" disabled")+'><span>'+esc(it.t)+'</span>'+(meta?'<em class="ckmeta">'+meta+'</em>':'')+'</label>'+(pend?checkPanel():'');
+  }).join("")+'</div>';
+  if(canWrite&&(q.status==="board"||q.status==="active")){
+    const advOpts=advs.map(x=>{const l=activeOf(x).filter(z=>z.id!==q.id).length;return '<option value="'+esc(x.id)+'"'+(x.id===q.adv?" selected":"")+(l>=MAX_ACTIVE?" disabled":"")+'>'+esc(x.name)+' · '+esc(advCls(x).n)+' · '+(x.id===q.adv&&q.status!=="board"?"выполняет это задание":l?"на задании":"свободен")+'</option>'}).join("");
+    body+=!advs.length?'<div class="empty">В гильдии нет авантюристов. Найми их за столами.</div>':
+      q.status==="board"?'<div class="row"><label class="f" style="flex:1 1 220px">Кого отправить<select id="a-pick">'+advOpts+'</select></label><button class="btn pri" data-act="take" style="flex:0 0 auto">Выдать заказ</button></div>':
+      '<div class="row"><label class="f" style="flex:1 1 220px">Исполнитель<select id="a-pick">'+advOpts+'</select></label><button class="btn" data-act="reassign" style="flex:0 0 auto">Переназначить</button></div>';
+  }
+  body+='<hr class="dash">';
+  const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite);
+  body+='<h3 class="sec">Документы · '+atts.length+'</h3><div class="atts">'+
+    atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
+      '<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      (canAtt?'<button class="ib rm" data-att-rm="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
+    ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
+    (!atts.length&&!ups.length?'<div class="small muted">'+(canAtt?"Документов нет. Прикрепи файл кнопкой ниже или перетащи его на бланк.":"Документов нет.")+'</div>':'')+'</div>'+
+    (canAtt?'<div class="row"><label class="btn sm" style="flex:0 0 auto;cursor:pointer">+ Прикрепить документ<input type="file" id="att-in" multiple accept="'+ATT_ACCEPT+'" hidden></label><span class="small muted" style="flex:1 1 200px">'+ATT_HINT+'</span></div>':'')+
+    '<div id="attbox"></div>';
+  const links=q.links||[],adding=open&&linkAdd[q.id];
+  body+='<h3 class="sec">Ссылки · '+links.length+'</h3><div class="links">'+
+    links.map((l,i)=>open?'<div class="lnk"><input type="url" data-link="'+i+'" value="'+esc(l)+'" placeholder="https://..." aria-label="Ссылка '+(i+1)+'"><a class="ib" href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener" aria-label="Открыть ссылку">↗</a><button class="ib rm" data-link-rm="'+i+'" aria-label="Удалить ссылку">×</button></div>':
+      '<div class="lnk"><a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a></div>').join("")+
+    (adding?'<div class="lnk"><input type="url" id="link-new" placeholder="https://..." aria-label="Новая ссылка"><span></span><button class="ib rm" id="link-new-x" aria-label="Не добавлять ссылку">×</button></div>':'')+
+    (!links.length&&!adding?'<div class="small muted">Ссылок нет.</div>':'')+'</div>'+
+    (open?'<div class="row"><button class="btn sm" id="link-add" style="flex:0 0 auto">+ Добавить ссылку</button></div>':'');
+  body+='<h3 class="sec">Результат</h3>'+(open?'<textarea id="r-res" placeholder="Что получилось: коротко опиши итог работы">'+esc(q.result||"")+'</textarea>':
+    (q.result?'<p class="desc">'+esc(q.result)+'</p>':'<div class="small muted">Не описан.</div>'));
+  if(q.note)body+='<div class="small"><span class="muted">Замечание: </span>'+esc(q.note)+'</div>';
+  let act="";
+  if(canWrite){
+    const full=q.kind==="simple"||p>=1,pa=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="submit";
+    if(q.status==="active")act+=pa?'<div style="flex:1 1 100%">'+checkPanel()+'</div>':'<button class="btn pri" data-act="submit" style="flex:0 0 auto"'+(full?'':' disabled title="Сначала заполни шкалу прогресса"')+'>Сдать заказ</button>'+(full?'':'<span class="small muted" style="align-self:center">'+(q.kind==="checklist"?"Сначала выполни все пункты.":"Сначала запиши весь прогресс.")+'</span>');
+    if(q.status==="review")body+='<div class="pend-plate">Ожидает подтверждения. Подтвердить заказ или отправить на доработку можно в архиве.</div>';
+    if(q.status==="done")act+='<button class="btn ghost" data-act="reopen" style="flex:0 0 auto">Открыть заново</button>';
+    if(!pa){act+='<button class="btn ghost" data-act="edit" style="flex:0 0 auto">Править</button>';
+      if(q.status==="active")act+='<button class="btn ret" data-act="cancel" style="flex:0 0 auto">Вернуть</button>';
+      act+='<button class="btn warn" data-act="del" style="flex:0 0 auto">Удалить</button>';}
+  }
+  return body+'<div class="row">'+act+'</div><div id="delbox"></div>';
+}
+function questForm(q,isNew){
+  return '<label class="f">Название<input type="text" id="f-title" maxlength="140" value="'+esc(q.title||"")+'" placeholder="Например: прочитать книгу по геймдизайну"></label>'+
+    '<label class="f">Описание и ожидаемый результат<textarea id="f-desc" placeholder="Что нужно сделать и что считается результатом">'+esc(q.desc||"")+'</textarea></label>'+
+    '<div class="row"><label class="f">Ранг<select id="f-rank">'+RANKS.map(r=>'<option value="'+r+'"'+(q.rank===r?" selected":"")+'>'+r+' · '+RANK_HINT[r]+' · '+RANK_XP[r]+' XP</option>').join("")+'</select></label>'+
+    '<label class="f">Срок<input type="date" id="f-dl" value="'+esc(q.deadline||"")+'"></label></div>'+
+    (isNew?'':'<div class="row"><label class="f">Создан<input type="date" id="f-created" value="'+esc((q.createdAt||"").slice(0,10))+'" max="'+today()+'"></label>'+
+      (q.takenAt?'<label class="f">Начат<input type="date" id="f-taken" value="'+esc(q.takenAt.slice(0,10))+'" max="'+today()+'"></label>':'')+'</div>')+
+    '<label class="f">Тип прогресса<select id="f-kind">'+Object.keys(KIND).map(k=>'<option value="'+k+'"'+(q.kind===k?" selected":"")+'>'+KIND[k]+(k==="counter"?" (страницы, элементы)":k==="checklist"?" (главы, подзадачи)":" (сделано / не сделано)")+'</option>').join("")+'</select></label>'+
+    '<div id="f-kindbox"></div>'+
+    (isNew&&assetsApi&&canWrite?'<div class="fl"><span>Документы</span><div class="atts" id="f-files"></div><div class="row"><label class="btn sm" style="flex:0 0 auto;cursor:pointer">+ Прикрепить документ<input type="file" id="f-att" multiple accept="'+ATT_ACCEPT+'" hidden></label><span class="small muted" style="flex:1 1 200px">'+ATT_HINT+'</span></div></div>':'')+
+    '<div class="row"><button class="btn pri" id="f-save" style="flex:0 0 auto">'+(isNew?"Повесить на доску":"Сохранить")+'</button><button class="btn ghost" id="f-cancel" style="flex:0 0 auto">Отмена</button></div>';
+}
+function bindQuestForm(root,q,old,after,cancel){
+  draft=(q.items||[]).map(i=>({t:i.t,d:!!i.d}));if(!draft.length)draft=[{t:"",d:false}];
+  const kind=root.querySelector("#f-kind"),box=root.querySelector("#f-kindbox");
+  const kb=()=>{const k=kind.value;box.innerHTML=
+    k==="counter"?'<div class="row"><label class="f">Цель (число)<input type="number" id="f-target" min="1" value="'+esc(q.target||"")+'" placeholder="300"></label><label class="f">Единица<input type="text" id="f-unit" maxlength="20" value="'+esc(q.unit||"")+'" placeholder="страниц"></label></div>':
+    k==="checklist"?'<div class="fl"><span>Пункты чек-листа</span><div class="items" id="f-items"></div><button type="button" class="btn sm addi" id="f-additem">+ Добавить пункт</button></div>':"";
+    if(k==="checklist"){renderItems();root.querySelector("#f-additem").onclick=()=>addItem(draft.length)}};
+  kb();kind.onchange=kb;
+  root.querySelector("#f-save").onclick=()=>saveQuest(old,after);
+  root.querySelector("#f-cancel").onclick=cancel;
+  pendingFiles=[];
+  const fl=root.querySelector("#f-files");
+  if(fl){
+    const draw=()=>{fl.innerHTML=pendingFiles.map((f,i)=>'<div class="att"><span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4))+'</span><span>'+esc(f.name)+'</span><span class="small muted">'+fmtSize(f.size)+'</span><button type="button" class="ib rm" data-pf="'+i+'" aria-label="Убрать '+esc(f.name)+'">×</button></div>').join("");
+      fl.querySelectorAll("[data-pf]").forEach(b=>b.onclick=()=>{pendingFiles.splice(+b.dataset.pf,1);draw()})};
+    const add=files=>{files.forEach(f=>{const bad=checkFile(f);if(bad)toast(bad);else pendingFiles.push(f)});draw()};
+    const inp=root.querySelector("#f-att");inp.onchange=()=>{add([...inp.files]);inp.value=""};
+    bindDrop(root,add);draw();
+  }
+}
+function bindDrop(root,onFiles){
+  if(!(assetsApi&&canWrite)){root.ondragover=root.ondragleave=root.ondrop=null;return}
+  root.ondragover=e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes("Files")){e.preventDefault();root.classList.add("dropping")}};
+  root.ondragleave=e=>{if(e.target===root)root.classList.remove("dropping")};
+  root.ondrop=e=>{e.preventDefault();root.classList.remove("dropping");if(e.dataTransfer.files.length)onFiles([...e.dataTransfer.files])};
+}
+function bindQuest(root,q){
+  const ai=root.querySelector("#att-in");if(ai)ai.onchange=()=>{uploadFiles(q.id,[...ai.files]);ai.value=""};
+  bindDrop(root,files=>uploadFiles(q.id,files));
+  root.querySelectorAll("[data-att-rm]").forEach(b=>b.onclick=()=>{
+    const f=(q.attachments||[])[+b.dataset.attRm];if(!f)return;const box=root.querySelector("#attbox");
+    box.innerHTML='<div class="confirm">Открепить и удалить «'+esc(f.name)+'»? <button class="btn warn sm" id="att-yes">Удалить</button><button class="btn ghost sm" id="att-no">Отмена</button></div>';
+    box.querySelector("#att-no").onclick=()=>box.innerHTML="";
+    box.querySelector("#att-yes").onclick=()=>removeAttachment(q.id,f);
+  });
+  const add=root.querySelector("#c-add");if(add)add.onclick=()=>addCount(q);
+  const live=()=>quests.find(x=>x.id===q.id)||q;
+  root.querySelectorAll("[data-item]").forEach(cb=>cb.onchange=()=>{
+    const i=+cb.dataset.item,it=(q.items||[])[i];if(!it)return;
+    const pend=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="item"&&pendingCheck.i===i;
+    if(cb.checked){if(!it.d){pendingCheck={type:"item",qid:q.id,i,step:"form",h:"0",m:"0",d:today()};refreshQuestViews();setTimeout(()=>{const h=document.getElementById("ck-h");h&&h.focus()},0)}}
+    else if(pend){pendingCheck=null;refreshQuestViews()}
+    else if(it.d)uncheckItem(live(),i);
+  });
+  const pc=pendingCheck&&pendingCheck.qid===q.id?pendingCheck:null;
+  if(pc){
+    const h=root.querySelector("#ck-h"),m=root.querySelector("#ck-m"),d=root.querySelector("#ck-d");
+    if(h){h.oninput=()=>pc.h=h.value;m.oninput=()=>pc.m=m.value;d.onchange=()=>pc.d=d.value||today();
+      root.querySelector("#ck-ok").onclick=()=>{pc.d=d.value||today();pc.step="ask";refreshQuestViews()};
+      root.querySelector("#ck-cancel").onclick=()=>{pendingCheck=null;refreshQuestViews()}}
+    const y=root.querySelector("#ck-yes");
+    if(y){y.onclick=()=>confirmCheck(true);root.querySelector("#ck-no").onclick=()=>confirmCheck(false);root.querySelector("#ck-back").onclick=()=>{pc.step="form";refreshQuestViews()}}
+  }
+  root.querySelectorAll("[data-link]").forEach(inp=>inp.onchange=()=>{const cur=live(),l=(cur.links||[]).slice(),i=+inp.dataset.link,v=inp.value.trim();if(v)l[i]=v;else l.splice(i,1);patch(cur,{links:l},v?"Ссылка обновлена.":"Ссылка удалена.")});
+  root.querySelectorAll("[data-link-rm]").forEach(b=>b.onclick=()=>{const cur=live(),l=(cur.links||[]).slice();l.splice(+b.dataset.linkRm,1);patch(cur,{links:l},"Ссылка удалена.")});
+  const la=root.querySelector("#link-add");if(la)la.onclick=()=>{linkAdd[q.id]=true;refreshQuestViews();setTimeout(()=>{const n=document.getElementById("link-new");n&&n.focus()},0)};
+  const ln=root.querySelector("#link-new");
+  if(ln){let done=false;const commit=()=>{if(done)return;const v=ln.value.trim();if(!v)return;done=true;linkAdd[q.id]=false;const cur=live();patch(cur,{links:(cur.links||[]).concat(v)},"Ссылка добавлена.").then(refreshQuestViews)};
+    ln.onchange=commit;ln.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commit()}};
+    root.querySelector("#link-new-x").onclick=()=>{linkAdd[q.id]=false;refreshQuestViews()}}
+  const rr=root.querySelector("#r-res");if(rr)rr.onchange=()=>patch(live(),{result:rr.value.trim()},"Результат сохранён.");
+  root.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>questAct(q,b.dataset.act));
+}
+
+/* ---------- camera: zoom on the drawn board, paper sheet up close ---------- */
+let stage=null,sheet=null;
+const RM=()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){return false}};
+const D=ms=>RM()?1:ms;
+const EASE="cubic-bezier(.55,0,.2,1)";
+const REG={full:{x:596,y:10,w:488,h:334},board:{x:600,y:10,w:248,h:334},work:{x:832,y:10,w:248,h:334}};
+const narrow=()=>innerWidth<720&&innerWidth/innerHeight<1.05;
+function camTarget(cam,reg){
+  const R=$("#hall").getBoundingClientRect();
+  const bottom=narrow()?68:14,P={left:12,top:62,width:innerWidth-24,height:innerHeight-62-bottom};
+  const u=R.width/1200,k=Math.min(P.width/(reg.w*u),P.height/(reg.h*u));
+  return{R,k,tx:P.left+P.width/2-R.left-k*(reg.x+reg.w/2)*u,ty:P.top+P.height/2-R.top-k*(reg.y+reg.h/2)*u};
+}
+const camHome=()=>({R:$("#hall").getBoundingClientRect(),k:1,tx:0,ty:0});
+/* The camera moves the SVG viewBox, so the browser redraws vectors at every zoom level (sharp text). */
+function camView(cam,c){
+  const sc=c.k*c.R.width/1200,ox=c.R.left+c.tx,oy=c.R.top+c.ty;
+  cam.setAttribute("viewBox",(-ox/sc)+" "+(-oy/sc)+" "+(innerWidth/sc)+" "+(innerHeight/sc));
+}
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function animCam(cam,from,to,dur){
+  if(stage&&stage._raf)cancelAnimationFrame(stage._raf);
+  return new Promise(res=>{
+    const t0=performance.now(),st=stage;
+    const step=now=>{
+      const t=Math.min(1,(now-t0)/dur),e=ease(t),L=(a,b)=>a+(b-a)*e;
+      camView(cam,{R:to.R,k:L(from.k,to.k),tx:L(from.tx,to.tx),ty:L(from.ty,to.ty)});
+      if(t<1&&st)st._raf=requestAnimationFrame(step);else{if(st)st._raf=0;res()}
+    };
+    if(dur<=1){camView(cam,to);res()}else step(t0);
+  });
+}
+function fillCam(){
+  if(!stage)return;const cam=stage.querySelector(".cam");
+  cam.innerHTML='<defs><clipPath id="camclip"><rect width="1200" height="680"/></clipPath></defs><g clip-path="url(#camclip)">'+$("#hall").innerHTML+'</g>';
+  cam.querySelectorAll("[tabindex]").forEach(e=>{e.setAttribute("tabindex","-1");e.removeAttribute("role");e.removeAttribute("aria-label")});
+  cam.querySelectorAll("[data-paper]").forEach(g=>{
+    g.setAttribute("tabindex","0");g.setAttribute("role","button");
+    g.onclick=e=>{e.stopPropagation();openSheet(g.dataset.paper,g)};
+    g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet(g.dataset.paper,g)}};
+    if(sheet&&sheet._id===g.dataset.paper)g.style.visibility="hidden";
+  });
+  const np=cam.querySelector("[data-newpaper]");
+  if(np){np.setAttribute("tabindex","0");np.setAttribute("role","button");
+    np.onclick=e=>{e.stopPropagation();openSheet(null,np,"new")};
+    np.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet(null,np,"new")}};
+    if(sheet&&sheet._mode==="new"&&!sheet._id)np.style.visibility="hidden"}
+  cam.querySelectorAll("[data-more]").forEach(t=>t.onclick=()=>openModal("list",t.dataset.more));
+}
+function openNewSheet(){openSheet(null,document.querySelector(".stage .cam [data-newpaper]"),"new")}
+function renderStageCtl(){
+  if(!stage)return;const ctl=stage.querySelector(".stage-ctl"),n=narrow();
+  ctl.innerHTML='<div class="sc-top"><button class="btn wood" data-bp-back>← В зал</button></div>'+
+    (n?'<div class="sc-bot"><button class="btn wood" data-reg="board" aria-pressed="'+(stage._reg!=="work")+'">Новые</button><button class="btn wood" data-reg="work" aria-pressed="'+(stage._reg==="work")+'">В работе</button></div>':"");
+  ctl.querySelector("[data-bp-back]").onclick=closeBoard;
+  ctl.querySelectorAll("[data-reg]").forEach(b=>b.onclick=()=>panTo(b.dataset.reg));
+}
+function panTo(reg){
+  if(!stage||stage._closing||stage._reg===reg)return;
+  const cam=stage.querySelector(".cam"),from=stage._c,to=camTarget(cam,REG[reg]);
+  stage._reg=reg;stage._c=to;
+  animCam(cam,from,to,D(280));
+  renderStageCtl();
+}
+function openBoard(after){
+  if(stage){if(after)after();return}closeModal();
+  stage=document.createElement("div");stage.className="stage";stage._kind="board";
+  stage.innerHTML='<div class="stage-dim"></div><svg class="cam" preserveAspectRatio="none" role="group" aria-label="Доска заказов вблизи"></svg><div class="stage-ctl"></div>';
+  document.body.appendChild(stage);document.documentElement.style.overflow="hidden";
+  const s=stage,cam=s.querySelector(".cam");
+  s._reg=narrow()?"board":"full";
+  fillCam();renderStageCtl();
+  const home=camHome(),c=camTarget(cam,REG[s._reg]);s._c=c;
+  camView(cam,home);
+  s.querySelector(".stage-dim").animate([{opacity:0},{opacity:1}],{duration:D(280),fill:"forwards"});
+  setTimeout(()=>cam.classList.add("detail"),D(100));
+  animCam(cam,home,c,D(320))
+    .then(()=>{if(stage!==s)return;const ctl=s.querySelector(".stage-ctl");ctl.classList.add("on");if(after){after();return}const b=ctl.querySelector("[data-bp-back]");b&&b.focus()}).catch(()=>{});
+  let sx=null;
+  s.addEventListener("touchstart",e=>{sx=e.touches[0].clientX},{passive:true});
+  s.addEventListener("touchend",e=>{if(sx==null||!narrow()||sheet)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>50)panTo(dx<0?"work":"board")},{passive:true});
+}
+function closeBoard(){
+  if(stage&&stage._kind!=="board"){closeScene();return}
+  if(!stage||stage._closing)return;
+  if(sheet)closeSheet(true);
+  const s=stage;s._closing=true;
+  const cam=s.querySelector(".cam");
+  s.querySelector(".stage-ctl").classList.remove("on");
+  setTimeout(()=>cam.classList.remove("detail"),D(100));
+  s.querySelector(".stage-dim").animate([{opacity:1},{opacity:0}],{duration:D(300),fill:"forwards"});
+  animCam(cam,s._c,camHome(),D(300))
+    .catch(()=>{}).finally(()=>{s.remove();if(stage===s)stage=null;document.documentElement.style.overflow="";
+      const h=document.querySelector('#hall [data-open="board"]');if(h)try{h.focus({preventScroll:true})}catch(e){}});
+}
+function renderBoardPanel(){if(stage&&stage._kind==="board"&&!stage._closing){fillCam();renderStageCtl()}}
+addEventListener("resize",()=>{
+  if(!stage||stage._closing||stage._kind!=="board")return;
+  if(narrow()&&stage._reg==="full")stage._reg="board";
+  if(!narrow()&&stage._reg!=="full")stage._reg="full";
+  const cam=stage.querySelector(".cam"),c=camTarget(cam,REG[stage._reg]);stage._c=c;
+  camView(cam,c);renderStageCtl();
+});
+
+/* ---------- scenes: adventurers' table, shift journal, guild books ---------- */
+const SREG={table:{x:130,y:288,w:340,h:184},journal:{x:466,y:468,w:268,h:112},status:{x:132,y:566,w:166,h:108},archive:{x:752,y:566,w:166,h:108}};
+const SOBJ={table:{x:160,y:366,w:280,h:44},journal:{x:520,y:514,w:160,h:34},status:{x:170,y:576,w:64,h:88},archive:{x:790,y:576,w:64,h:88}};
+const SNAME={table:"Стол авантюристов",journal:"Журнал смены",status:"Книга «Статус гильдии»",archive:"Книга «Архив»"};
+const GUILD_OPEN="2026-10-26",GUILD_CLOSE="2027-02-12";
+const WD_FULL=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
+const shiftDay=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+const isNarrowBook=()=>innerWidth<720;
+const pageWrap=h=>'<div class="pgin">'+h+'</div>';
+const kvRows=arr=>arr.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+esc(String(v))+'</td></tr>').join("");
+const rosterSorted=()=>advs.slice().sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"")||a.id.localeCompare(b.id));
+function scrRect(c,o){const sc=c.k*c.R.width/1200,ox=c.R.left+c.tx,oy=c.R.top+c.ty;return{left:ox+o.x*sc,top:oy+o.y*sc,width:o.w*sc,height:o.h*sc}}
+function fillCamPlain(cam){
+  cam.innerHTML='<defs><clipPath id="camclip"><rect width="1200" height="680"/></clipPath></defs><g clip-path="url(#camclip)">'+$("#hall").innerHTML+'</g>';
+  cam.querySelectorAll("[tabindex]").forEach(e=>{e.setAttribute("tabindex","-1");e.removeAttribute("role");e.removeAttribute("aria-label")});
+}
+function renderSceneCtl(){
+  if(!stage)return;const ctl=stage.querySelector(".stage-ctl");
+  ctl.innerHTML='<div class="sc-top"><button class="btn wood" data-bp-back>← В зал</button></div>';
+  ctl.querySelector("[data-bp-back]").onclick=closeScene;
+}
+const BOOKK=k=>k==="status"||k==="archive";
+function camFromRect(o,C){const R=$("#hall").getBoundingClientRect(),sc=C.width/o.w;return{R,k:sc*1200/R.width,tx:C.left-o.x*sc-R.left,ty:C.top-o.y*sc-R.top}}
+function openScene(kind,after){
+  if(stage){if(stage._kind===kind&&!stage._closing&&after)after();return}
+  closeModal();
+  const s=stage=document.createElement("div");s.className="stage";s._kind=kind;
+  s.innerHTML='<div class="stage-dim"></div><svg class="cam" preserveAspectRatio="none" aria-hidden="true"></svg><div class="veil"></div><div class="ovl" role="dialog" aria-modal="true" aria-label="'+SNAME[kind]+'"></div><div class="stage-ctl"></div>';
+  document.body.appendChild(s);document.documentElement.style.overflow="hidden";
+  const cam=s.querySelector(".cam");fillCamPlain(cam);
+  const home=camHome();camView(cam,home);
+  let c;
+  if(BOOKK(kind)){
+    buildBook(s);const bk=s.querySelector(".book");bk.style.visibility="hidden";
+    const Rf=bk.querySelector(".cover").getBoundingClientRect();s._shift=bk.classList.contains("single")?0:Rf.width/2;
+    c=camFromRect(SOBJ[kind],{left:Rf.left-s._shift,top:Rf.top,width:Rf.width,height:Rf.height});
+  }else c=camTarget(cam,SREG[kind]);
+  s._c=c;
+  s.querySelector(".stage-dim").animate([{opacity:0},{opacity:1}],{duration:D(300),fill:"forwards"});
+  renderSceneCtl();
+  animCam(cam,home,c,D(BOOKK(kind)?420:300)).then(()=>stage===s?sceneIn(s):null)
+    .then(()=>{if(stage!==s)return;s.querySelector(".stage-ctl").classList.add("on");if(after)after();else{const b=s.querySelector(".ovl button,.ovl textarea,[data-bp-back]");b&&b.focus({preventScroll:true})}}).catch(()=>{});
+}
+function openBookAnim(s,book,closedT,openT){
+  const cover=book.querySelector(".cover"),n=book.classList.contains("single");
+  book.classList.remove("shut");
+  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:closedT},{transform:openT}],{duration:D(500),easing:ease,fill:"forwards"});
+  const flip=n?cover.animate([{transform:"rotateY(0deg)",opacity:1},{transform:"rotateY(-115deg)",opacity:0}],{duration:D(500),easing:ease,fill:"forwards"}).finished
+    :flipEl(cover,0,-180,cover.querySelector(".cfront"),cover.querySelector(".cback"),D(500));
+  return Promise.all([slide.finished,flip]).then(()=>{if(stage!==s)return;book.classList.remove("closed");cover.style.display="none"});
+}
+function closeBookAnim(s,book,closedT,openT){
+  const cover=book.querySelector(".cover"),n=book.classList.contains("single"),cb=cover.querySelector(".cback"),cf=cover.querySelector(".cfront");
+  if(!n)cb.innerHTML=book.querySelector(".pl").innerHTML;
+  book.getAnimations().forEach(a=>a.cancel());cover.getAnimations().forEach(a=>a.cancel());
+  book.style.transform="";book.classList.add("closed");cover.style.display="";
+  const ease="cubic-bezier(.45,0,.2,1)",slide=book.animate([{transform:openT},{transform:closedT}],{duration:D(420),easing:ease,fill:"forwards"});
+  let flip;
+  if(n)flip=cover.animate([{transform:"rotateY(-115deg)",opacity:0},{transform:"rotateY(0deg)",opacity:1}],{duration:D(420),easing:ease,fill:"forwards"}).finished;
+  else{cb.style.visibility="visible";cf.style.visibility="hidden";flip=flipEl(cover,-180,0,cb,cf,D(420))}
+  return Promise.all([slide.finished,flip]).then(()=>book.classList.add("shut"));
+}
+function sceneIn(s){
+  const kind=s._kind,ov=s.querySelector(".ovl"),veil=s.querySelector(".veil");
+  if(BOOKK(kind)){
+    const book=ov.querySelector(".book"),closedT="translate("+(-s._shift)+"px,0px)";
+    book.style.transform=closedT;book.style.visibility="";hideInCam(s,true);
+    veil.animate([{opacity:0},{opacity:.8}],{duration:D(500),fill:"forwards"});
+    return openBookAnim(s,book,closedT,"translate(0px,0px)").then(()=>{if(stage===s){book.getAnimations().forEach(a=>a.cancel());book.style.transform=""}});
+  }
+  const T=scrRect(s._c,SOBJ[kind]);s._T=T;
+  veil.animate([{opacity:0},{opacity:.8}],{duration:D(380),fill:"forwards"});
+  if(kind==="table"){
+    ov.innerHTML='<div class="ttop"></div>';const el=ov.firstChild;sizeTable(el);fillTable();
+    const F=el.getBoundingClientRect(),th=Math.acos(Math.min(1,T.height/T.width))*180/Math.PI;
+    s._from="translate("+(T.left+T.width/2-(F.left+F.width/2))+"px,"+(T.top+T.height/2-(F.top+F.height/2))+"px) scale("+(T.width/F.width)+") rotateX("+th.toFixed(1)+"deg)";
+    hideInCam(s,true);
+    return el.animate([{transform:s._from},{transform:"none"}],{duration:D(440),easing:"cubic-bezier(.3,.7,.25,1)"}).finished;
+  }
+  buildBook(s);
+  const book=ov.querySelector(".book"),cover=book.querySelector(".cover"),Rf=cover.getBoundingClientRect(),B=book.getBoundingClientRect(),sx=T.width/Rf.width;
+  s._shift=book.classList.contains("single")?0:Rf.width/2;
+  const th=Math.acos(Math.min(1,T.height/(Rf.height*sx)))*180/Math.PI;
+  book.style.transformOrigin=(Rf.left-B.left+Rf.width/2)+"px "+(Rf.top-B.top+Rf.height/2)+"px";
+  s._from="translate("+(T.left+T.width/2-(Rf.left+Rf.width/2))+"px,"+(T.top+T.height/2-(Rf.top+Rf.height/2))+"px) scale("+sx+") rotateX("+th.toFixed(1)+"deg)";
+  s._closedT="translate("+(-s._shift)+"px,0px) scale(1) rotateX(0deg)";
+  hideInCam(s,true);
+  return book.animate([{transform:s._from},{transform:s._closedT}],{duration:D(440),easing:"cubic-bezier(.3,.7,.25,1)",fill:"forwards"}).finished
+    .then(()=>stage===s?openBookAnim(s,book,s._closedT,"translate(0px,0px) scale(1) rotateX(0deg)"):null)
+    .then(()=>{if(stage===s){book.getAnimations().forEach(a=>a.cancel());book.style.transform=""}});
+}
+function closeScene(){
+  const s=stage;if(!s||s._closing)return;if(sheet)closeSheet(true);s._closing=true;
+  s.querySelector(".stage-ctl").classList.remove("on");
+  const ov=s.querySelector(".ovl"),cam=s.querySelector(".cam"),book=ov.querySelector(".book"),el=ov.querySelector(".ttop"),veil=s.querySelector(".veil");
+  let p=Promise.resolve();
+  if(book&&BOOKK(s._kind)){
+    p=closeBookAnim(s,book,"translate("+(-s._shift)+"px,0px)","translate(0px,0px)");
+    veil.animate([{opacity:.8},{opacity:0}],{duration:D(420),fill:"forwards"});
+  }else if(book&&s._from){
+    p=closeBookAnim(s,book,s._closedT,"translate(0px,0px) scale(1) rotateX(0deg)")
+      .then(()=>book.animate([{transform:s._closedT},{transform:s._from}],{duration:D(320),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished);
+  }else if(el&&s._from)p=el.animate([{transform:"none"},{transform:s._from}],{duration:D(330),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished;
+  p.catch(()=>{}).then(()=>{ov.innerHTML="";hideInCam(s,false);
+      veil.animate([{opacity:+getComputedStyle(veil).opacity||0},{opacity:0}],{duration:D(180),fill:"forwards"});
+      s.querySelector(".stage-dim").animate([{opacity:1},{opacity:0}],{duration:D(320),fill:"forwards"});
+      return animCam(cam,s._c,camHome(),D(BOOKK(s._kind)?400:300))})
+    .catch(()=>{}).finally(()=>{s.remove();if(stage===s)stage=null;document.documentElement.style.overflow="";
+      const h=document.querySelector('#hall [data-open="'+({table:"advs",journal:"ledger",status:"guild",archive:"archive"}[s._kind])+'"]');if(h)try{h.focus({preventScroll:true})}catch(e){}});
+}
+
+/* table seen from above, adventurers' dossiers on it */
+function sizeTable(el){const d=Math.min(innerWidth-24,innerHeight-84,880);el.style.width=el.style.height=d+"px";el.style.setProperty("--fs",Math.max(9.5,d*.0185).toFixed(1)+"px")}
+function fillTable(){
+  const s=stage;if(!s||s._kind!=="table"||s._closing)return;const el=s.querySelector(".ttop");if(!el)return;
+  const cards=rosterSorted().map(a=>({a}));if(canWrite&&advs.length<MAX_ADVS)cards.push({hire:1});
+  const L={1:[[50,52,-2]],2:[[31,52,-4],[69,52,4]],3:[[29,38,-5],[71,38,4],[50,73,-2]],4:[[29,33,-5],[71,31,4],[30,71,3],[70,71,-4]]}[cards.length]||[];
+  el.innerHTML='<span class="tt-candle" style="left:50%;top:11%"></span><span class="tt-mug" style="left:88%;top:52%"></span>'+
+    (cards.length?'':'<span class="tt-empty">За столом пусто</span>')+
+    cards.map((c,i)=>{const[x,y,r]=L[i];
+      if(c.hire)return '<button class="dos dos-new" data-hire="1" data-rot="'+r+'" style="left:'+x+'%;top:'+y+'%;--r:'+r+'deg" aria-label="Нанять авантюриста"><span class="plus">+</span><span>Нанять</span></button>';
+      const a=c.a,st=advStats(a),act=activeOf(a);
+      return '<button class="dos" data-dossier="'+esc(a.id)+'" data-rot="'+r+'" style="left:'+x+'%;top:'+y+'%;--r:'+r+'deg;--c:'+advColor(a)+'" aria-label="Досье: '+esc(a.name)+'">'+
+        '<span class="dos-tab"></span><span class="dos-head">'+portrait(a)+'<span><b>'+esc(a.name)+'</b><i>'+esc(advCls(a).n)+'</i></span></span>'+
+        '<span class="dos-meta">Ранг '+st.rank+' · '+st.xp+' XP</span>'+
+        '<span class="dos-st '+(act.length?"busy":"free")+'">'+(act.length?"На задании: "+esc(act.map(q=>q.title).join(", ")):"Свободен")+'</span>'+
+        '<span class="dos-area">'+esc(a.area||advCls(a).area)+'</span></button>'}).join("");
+  el.querySelectorAll("[data-dossier]").forEach(b=>{b.onclick=()=>openSheet(b.dataset.dossier,b,"view","adv");if(sheet&&sheet._kind==="adv"&&sheet._id===b.dataset.dossier)b.style.visibility="hidden"});
+  const h=el.querySelector("[data-hire]");if(h){h.onclick=()=>openSheet(null,h,"hire","adv");if(sheet&&sheet._kind==="adv"&&sheet._mode==="hire"&&!sheet._id)h.style.visibility="hidden"}
+}
+function renderAdvSheet(w,force){
+  const paper=w.querySelector(".sheet");
+  if(w._mode==="hire"||w._mode==="advedit"){
+    if(!force)return;const hire=w._mode==="hire";
+    const a=hire?{cls:Object.keys(CLASSES).find(k=>!advs.some(x=>x.cls===k))||"chron"}:advById(w._id);if(!a){closeSheet(true);return}
+    const taken=new Set(advs.filter(x=>x.id!==w._id).map(x=>x.cls));
+    paper.setAttribute("aria-label",hire?"Новое досье":"Правка досье");
+    paper.innerHTML='<header class="sh-h"><h2>'+(hire?"Новое досье":"Правка досье")+'</h2><span class="stamp2 st-board">'+(hire?"НАЙМ":"ПРАВКА")+'</span><button class="x" data-sheet-close aria-label="Закрыть">×</button></header>'+
+      '<div class="row"><label class="f">Имя<input type="text" id="h-name" maxlength="40" value="'+esc(a.name||"")+'" placeholder="Например: Мира"></label>'+
+      '<label class="f">Класс<select id="h-cls">'+Object.keys(CLASSES).map(k=>'<option value="'+k+'"'+(a.cls===k?" selected":"")+(taken.has(k)?" disabled":"")+'>'+CLASSES[k].n+' · '+CLASSES[k].area+(taken.has(k)?" (уже есть)":"")+'</option>').join("")+'</select></label></div>'+
+      '<label class="f">Направление работы<input type="text" id="h-area" maxlength="80" value="'+esc(a.area||"")+'" placeholder="Оставь пустым, чтобы взять направление класса"></label>'+
+      '<label class="f">Характер и история<textarea id="h-bio" placeholder="Пара строк о персонаже">'+esc(a.bio||"")+'</textarea></label>'+
+      '<div class="row"><button class="btn pri" id="h-save" style="flex:0 0 auto">'+(hire?"Нанять":"Сохранить")+'</button><button class="btn ghost" id="h-cancel" style="flex:0 0 auto">Отмена</button></div>';
+    paper.querySelector("#h-save").onclick=()=>saveAdv(hire?null:a,id=>{if(sheet!==w)return;w._id=id;w._mode="view";if(hire)closeSheet();else renderSheet(true)});
+    paper.querySelector("#h-cancel").onclick=()=>{if(hire)closeSheet();else{w._mode="view";renderSheet(true)}};
+    paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();return;
+  }
+  const a=advById(w._id);if(!a){closeSheet(true);return}
+  const ae=document.activeElement;if(!force&&ae&&paper.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)){w._stale=true;return}
+  const st=advStats(a),act=activeOf(a),done=st.mine.filter(q=>q.status==="done").sort((x,y)=>(y.doneAt||"").localeCompare(x.doneAt||""));
+  const stat=(n,v,pct,hint)=>'<div class="stat"><small><span>'+n+'</span></small><b>'+v+'</b>'+(pct!=null?'<div class="bar"><i style="width:'+Math.min(100,pct)+'%"></i></div>':'')+'<div class="small muted">'+hint+'</div></div>';
+  paper.setAttribute("aria-label","Досье: "+a.name);
+  paper.innerHTML='<header class="sh-h"><span class="sh-port">'+portrait(a)+'</span><h2>'+esc(a.name)+'<span class="sh-sub">'+esc(advCls(a).n)+' · '+esc(a.area||advCls(a).area)+'</span></h2><span class="stamp2 '+(act.length?"st-active":"st-done")+'">'+(act.length?"НА ЗАДАНИИ":"СВОБОДЕН")+'</span><button class="x" data-sheet-close aria-label="Положить досье на стол">×</button></header>'+
+    '<div class="state"><span class="pill gold">Ранг '+st.rank+'</span><span class="small muted">'+rankLine(st)+'</span></div>'+
+    '<div class="bigbar"><i style="width:'+st.R.pct.toFixed(1)+'%"></i></div>'+(a.bio?'<p class="desc">'+esc(a.bio)+'</p>':'')+
+    '<h3 class="sec">Характеристики</h3><div class="stats">'+stat("Сила",st.might,null,"сумма рангов выполненных заказов")+stat("Точность",st.onTime==null?"-":st.onTime+"%",st.onTime,"заказы, сданные в срок")+
+      stat("Выносливость",st.stamina,null,"записанные шаги прогресса")+'</div>'+
+    '<h3 class="sec">Сейчас</h3>'+(act.length?'<div class="qlist">'+act.map(qRow).join("")+'</div>':'<div class="empty">Свободен. Выдай ему заказ с доски.</div>')+
+    '<h3 class="sec">Выполнено · '+done.length+'</h3>'+(done.length?'<div class="qlist">'+done.map(qRow).join("")+'</div>':'<div class="empty">Пока ничего.</div>')+
+    (canWrite?'<div class="row"><button class="btn ghost" id="adv-edit" style="flex:0 0 auto">Править</button><button class="btn warn" id="adv-fire" style="flex:0 0 auto">Уволить</button></div><div id="delbox"></div>':'');
+  paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();
+  const e=paper.querySelector("#adv-edit");if(e)e.onclick=()=>{w._mode="advedit";renderSheet(true)};
+  const f=paper.querySelector("#adv-fire");if(f)f.onclick=()=>{const box=paper.querySelector("#delbox");
+    if(act.length){box.innerHTML='<div class="confirm">Сначала забери у авантюриста заказы в работе.</div>';return}
+    box.innerHTML='<div class="confirm">Уволить '+esc(a.name)+'? Выполненные заказы останутся в архиве. <button class="btn warn sm" id="fire-yes">Уволить</button><button class="btn ghost sm" id="fire-no">Отмена</button></div>';
+    box.querySelector("#fire-no").onclick=()=>box.innerHTML="";
+    box.querySelector("#fire-yes").onclick=async()=>{try{await db.doc("adventurers/"+a.id).delete();toast(a.name+" покинул гильдию.");closeSheet(true)}catch(err){fail(err)}}};
+}
+
+/* books: journal, guild status, archive */
+const CREST='<svg viewBox="0 0 90 110" aria-hidden="true"><path d="M14 18l62 74M76 18l-62 74" stroke="#8a7754" stroke-width="5" stroke-linecap="round"/><path d="M45 26l26 9v24q0 26-26 38q-26-12-26-38v-24z" fill="#1f3a6b" stroke="#c9a24a" stroke-width="3"/><path d="M45 42l4 10h10l-8 6 3 10-9-6-9 6 3-10-8-6h10z" fill="#c9a24a"/></svg>';
+function aeExtraHTML(q){
+  const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite),links=q.links||[];
+  return '<div class="bk-h s">Документы · '+atts.length+'</div><div class="atts">'+
+    atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
+      '<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      (canAtt?'<button class="ib rm" data-ae-att="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
+    ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
+    (!atts.length&&!ups.length?'<div class="small muted">Документов нет.</div>':'')+'</div>'+
+    (canAtt?'<label class="btn sm" style="align-self:flex-start;cursor:pointer">+ Прикрепить документ<input type="file" id="ae-att" multiple accept="'+ATT_ACCEPT+'" hidden></label><span class="small muted">'+ATT_HINT+'</span>':'')+
+    '<div class="bk-h s">Ссылки · '+links.length+'</div><div class="links">'+
+    links.map((l,i)=>'<div class="lnk"><a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a><span></span><button class="ib rm" data-ae-link="'+i+'" aria-label="Удалить ссылку">×</button></div>').join("")+
+    (!links.length?'<div class="small muted">Ссылок нет.</div>':'')+'</div>'+
+    '<div class="lnk"><input type="url" id="ae-link" placeholder="https://..." aria-label="Новая ссылка"><span></span><button class="btn sm" id="ae-link-add">+ Добавить ссылку</button></div><div id="ae-confirm"></div>';
+}
+function bindAeExtra(box){
+  const q=quests.find(x=>x.id===box.dataset.id);if(!q)return;
+  const ai=box.querySelector("#ae-att");if(ai)ai.onchange=()=>{uploadFiles(q.id,[...ai.files]);ai.value=""};
+  box.querySelectorAll("[data-ae-att]").forEach(b=>b.onclick=()=>{const f=(q.attachments||[])[+b.dataset.aeAtt];if(!f)return;const c=box.querySelector("#ae-confirm");
+    c.innerHTML='<div class="confirm">Открепить и удалить «'+esc(f.name)+'»? <button class="btn warn sm" id="ae-att-yes">Удалить</button><button class="btn ghost sm" id="ae-att-no">Отмена</button></div>';
+    c.querySelector("#ae-att-no").onclick=()=>c.innerHTML="";c.querySelector("#ae-att-yes").onclick=()=>removeAttachment(q.id,f)});
+  box.querySelectorAll("[data-ae-link]").forEach(b=>b.onclick=()=>{const l=(q.links||[]).slice();l.splice(+b.dataset.aeLink,1);patch(q,{links:l},"Ссылка удалена.")});
+  const inp=box.querySelector("#ae-link"),add=()=>{const v=inp.value.trim();if(!v){inp.focus();return}inp.value="";inp.blur();patch(q,{links:(q.links||[]).concat(v)},"Ссылка добавлена.")};
+  box.querySelector("#ae-link-add").onclick=add;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add()}};
+}
+function renderAeExtra(){
+  const box=document.querySelector(".stage .book #ae-extra");if(!box)return;
+  const ae=document.activeElement;if(ae&&box.contains(ae)&&ae.tagName==="INPUT"&&ae.type!=="file")return;
+  const q=quests.find(x=>x.id===box.dataset.id);if(!q)return;box.innerHTML=aeExtraHTML(q);bindAeExtra(box);
+}
+function flipEl(el,a,b,front,back,dur){
+  const mid=(a+b)/2;
+  return el.animate([{transform:"rotateY("+a+"deg)"},{transform:"rotateY("+mid+"deg)"}],{duration:dur/2,easing:"cubic-bezier(.5,0,.85,.6)",fill:"forwards"}).finished
+    .then(()=>{if(front)front.style.visibility="hidden";if(back)back.style.visibility="visible";
+      return el.animate([{transform:"rotateY("+mid+"deg)"},{transform:"rotateY("+b+"deg)"}],{duration:dur/2,easing:"cubic-bezier(.15,.4,.5,1)",fill:"forwards"}).finished});
+}
+const SHIDE={journal:'[data-open="ledger"] .olt',status:'[data-open="guild"] .olt',archive:'[data-open="archive"] .olt',table:'[data-open="advs"] .olt'};
+function hideInCam(s,on){const el=s.querySelector(".cam "+SHIDE[s._kind]);if(el)el.style.visibility=on?"hidden":""}
+function bookCover(kind){
+  if(kind==="journal")return JOURNAL_COVER;
+  const a=tomeArgs(kind);
+  return '<svg viewBox="'+a[0]+' '+(a[1]-a[3])+' '+a[2]+' '+a[3]+'" preserveAspectRatio="none" aria-hidden="true">'+tomeSVG.apply(null,a)+'</svg>';
+}
+function buildBook(s){
+  const kind=s._kind,ov=s.querySelector(".ovl"),nar=isNarrowBook();
+  const PW=Math.floor(nar?Math.min(innerWidth-28,460,(innerHeight-100)/BOOK_RATIO):Math.min(450,(innerWidth-48)/2,(innerHeight-100)/BOOK_RATIO)),H=Math.round(PW*BOOK_RATIO);
+  s._book={kind,sid:kind==="journal"?yesterday():kind==="status"?"main":"home"};
+  ov.innerHTML='<div class="book closed shut book-'+kind+(nar?" single":"")+'" style="width:'+(nar?PW:PW*2)+'px;height:'+H+'px"><div class="pg pl"></div><div class="pg pr"></div>'+
+    '<div class="cover" style="width:'+PW+'px"><div class="cf cfront cv">'+bookCover(kind)+'</div><div class="cf cback pg"></div></div></div>';
+  renderBookSpread(true);
+}
+function renderBookSpread(initial){
+  const s=stage;if(!s||!s._book)return;const book=s.querySelector(".book");if(!book)return;
+  const sp=SPREADS[s._book.kind](s._book.sid),nar=book.classList.contains("single");
+  if(nar)book.querySelector(".pr").innerHTML=pageWrap(sp.left+'<hr class="dash">'+sp.right);
+  else{book.querySelector(".pl").innerHTML=pageWrap(sp.left);book.querySelector(".pr").innerHTML=pageWrap(sp.right)}
+  if(initial&&!nar)book.querySelector(".cback").innerHTML=pageWrap(sp.left);
+  bindBook(book);
+}
+function refreshBook(){
+  const s=stage;if(!s||!s._book||s._turning||s._closing)return;
+  const ae=document.activeElement,book=s.querySelector(".book");if(!book)return;
+  if(/^qe:/.test(s._book.sid)){renderAeExtra();return}
+  if(ae&&book.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
+  renderBookSpread(false);
+}
+function turnTo(sid,back){
+  const s=stage;if(!s||!s._book||s._turning||s._book.sid===sid)return;const book=s.querySelector(".book");
+  s._jadd=null;const old=SPREADS[s._book.kind](s._book.sid);s._book.sid=sid;const nw=SPREADS[s._book.kind](sid);
+  const nar=book.classList.contains("single"),pl=book.querySelector(".pl"),pr=book.querySelector(".pr");
+  const leaf=document.createElement("div");leaf.className="leaf"+(back?" lb":"");s._turning=true;
+  if(nar){leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.left+'<hr class="dash">'+old.right)+'</div>';pr.innerHTML=pageWrap(nw.left+'<hr class="dash">'+nw.right)}
+  else if(!back){leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.right)+'</div><div class="cf pg lk">'+pageWrap(nw.left)+'</div>';pr.innerHTML=pageWrap(nw.right)}
+  else{leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.left)+'</div><div class="cf pg lk">'+pageWrap(nw.right)+'</div>';pl.innerHTML=pageWrap(nw.left)}
+  book.appendChild(leaf);
+  const run=nar?leaf.animate([{transform:"rotateY(0deg)",opacity:1},{transform:back?"rotateY(100deg)":"rotateY(-100deg)",opacity:0}],{duration:D(380),easing:"cubic-bezier(.4,0,.2,1)",fill:"forwards"}).finished
+    :flipEl(leaf,0,back?180:-180,leaf.querySelector(".lf"),leaf.querySelector(".lk"),D(520));
+  run.catch(()=>{})
+    .then(()=>{if(!nar){if(back)pr.innerHTML=pageWrap(nw.right);else pl.innerHTML=pageWrap(nw.left)}leaf.remove();s._turning=false;renderBookSpread(false)});
+}
+function bindBook(book){
+  book.querySelectorAll(".pl [data-turn],.pr [data-turn]").forEach(b=>b.onclick=()=>turnTo(b.dataset.turn,false));
+  book.querySelectorAll(".pl [data-back],.pr [data-back]").forEach(b=>b.onclick=()=>turnTo(b.dataset.back,true));
+  const s=stage;if(!s||!s._book)return;
+  const day=book.querySelector(".pr #bk-day,.pl #bk-day");if(day)day.onchange=()=>{const v=day.value;if(v&&v<=today()&&v>=GUILD_OPEN)turnTo(v,v<s._book.sid);else{toast(v&&v<GUILD_OPEN?"Гильдия открылась "+ru(GUILD_OPEN)+": более ранних записей нет.":"Записать можно только прошедший или сегодняшний день.");day.value=s._book.sid}};
+  if(s._book.kind==="journal"){
+    const date=s._book.sid,ents=()=>entriesOf(daily.find(d=>d.id===date)).slice();
+    const setMode=m=>{s._jadd=m||null;renderBookSpread(false);const f=book.querySelector("#jr-q,#jr-t");if(f)f.focus()};
+    book.querySelectorAll("[data-jmode]").forEach(b=>b.onclick=()=>setMode(b.dataset.jmode));
+    const ad=book.querySelector("#jr-add");if(ad)ad.onclick=()=>setMode("pick");
+    const commit=async(list,msg)=>{const was=reports().some(d=>d.id===date);try{await saveEntries(date,list);s._jadd=null;if(document.activeElement)document.activeElement.blur();
+      toast(msg+(!was&&list.length?" +"+DAILY_XP+" XP":""));renderBookSpread(false)}catch(e){fail(e)}};
+    book.querySelectorAll("[data-jdel]").forEach(b=>b.onclick=()=>{const l=ents();l.splice(+b.dataset.jdel,1);commit(l,"Действие убрано из журнала.")});
+    const qs=book.querySelector("#jr-q"),is=book.querySelector("#jr-i"),iw=book.querySelector("#jr-iw"),ok=book.querySelector("#jr-ok");
+    if(qs)qs.onchange=()=>{const q=quests.find(x=>x.id===qs.value);ok.disabled=!q;const lk=loggedKeys(),its=q?freeItems(q,lk):[],whole=q&&!lk.has(q.id+"|");
+      iw.hidden=!its.length;is.innerHTML=(whole?'<option value="">Весь заказ целиком</option>':'')+its.map(o=>'<option value="'+o.k+'">'+(o.it.d?"✓ ":"")+esc(o.it.t)+'</option>').join("");if(is.onchange)is.onchange();else fillT(null)};
+    const hh=book.querySelector("#jr-h"),mm=book.querySelector("#jr-m"),getMin=()=>hh?Math.max(0,(parseInt(hh.value,10)||0)*60+(parseInt(mm.value,10)||0)):0;
+    const fillT=m=>{if(!hh)return;hh.value=m?Math.floor(m/60):0;mm.value=m?m%60:0};
+    if(is)is.onchange=()=>{const q=quests.find(x=>x.id===qs.value),it=q&&is.value!==""?clean(q.items||[])[+is.value]:null;fillT(it&&it.min)};
+    if(ok)ok.onclick=()=>{
+      if(qs){const q=quests.find(x=>x.id===qs.value);if(!q)return;const k=is.value===""?null:+is.value,it=k==null?null:clean(q.items||[])[k];
+        const en={t:"quest",qid:q.id,i:k,title:q.title};if(it)en.item=it.t;else if(q.status==="done")en.done=true;const mn=getMin();if(mn)en.min=mn;
+        const l=ents();if(loggedKeys().has(en.qid+"|"+(k??""))){toast("Это уже отмечено в журнале.");return}
+        l.push(en);commit(l,"Действие добавлено в журнал.")}
+      else{const t=(book.querySelector("#jr-t").value||"").trim();if(!t){toast("Напиши, что именно сделано.");return}const l=ents(),en={t:"other",text:t},mn=getMin();if(mn)en.min=mn;l.push(en);commit(l,"Действие добавлено в журнал.")}
+    };
+  }
+  const aex=book.querySelector("#ae-extra");if(aex)bindAeExtra(aex);
+  const ae=book.querySelector("#ae-save");if(ae)ae.onclick=async()=>{
+    const q=quests.find(x=>x.id===ae.dataset.id);if(!q)return;const v=id=>(book.querySelector(id).value||"").trim();
+    const title=v("#ae-title");if(!title){toast("Дай заказу название.");return}
+    const iso=x=>x?x+"T12:00:00.000Z":null,done=v("#ae-done");
+    ae.disabled=true;
+    try{await db.doc("quests/"+q.id).update({title,desc:v("#ae-desc"),rank:v("#ae-rank"),adv:v("#ae-adv")||null,takenAt:iso(v("#ae-taken")),doneAt:done?iso(done):(q.doneAt||null),result:v("#ae-res"),updatedAt:new Date().toISOString()});
+      toast("Заказ в архиве обновлён.");document.activeElement&&document.activeElement.blur();turnTo("qd:"+q.id,true)}
+    catch(e){fail(e);ae.disabled=false}};
+  const bok=book.querySelector("#bk-ok");if(bok)bok.onclick=async()=>{const q=quests.find(x=>x.id===bok.dataset.id);if(!q)return;bok.disabled=true;
+    await patch(q,{status:"done",doneAt:q.submittedAt||new Date().toISOString(),note:""},"Заказ «"+q.title+"» подтверждён. +"+questXP(Object.assign({},q,{status:"done"}))+" XP");renderBookSpread(false)};
+  const brw=book.querySelector("#bk-rework");if(brw)brw.onclick=async()=>{const q=quests.find(x=>x.id===brw.dataset.id);if(!q)return;brw.disabled=true;
+    const note=(book.querySelector("#bk-rnote")?.value||"").trim();
+    await patch(q,{status:"board",adv:null,submittedAt:null,note},"Заказ «"+q.title+"» отправлен на доработку: он снова в «Новых», прогресс сохранён.");turnTo("q:0",true)};
+  const del=book.querySelector("#bk-del");if(del)del.onclick=()=>{
+    const box=book.querySelector("#bk-delbox");if(!box)return;
+    box.innerHTML='<div class="confirm">Удалить заказ из архива навсегда? Его документы тоже удалятся. <button class="btn warn sm" id="bk-del-yes">Удалить</button><button class="btn ghost sm" id="bk-del-no">Отмена</button></div>';
+    box.querySelector("#bk-del-no").onclick=()=>box.innerHTML="";
+    box.querySelector("#bk-del-yes").onclick=()=>{const q=quests.find(x=>x.id===del.dataset.id);if(!q)return;
+      turnTo("q:"+del.dataset.pg,true);
+      db.doc("quests/"+q.id).delete().then(()=>{if(assetsApi)(q.attachments||[]).forEach(f=>assetsApi.delete(f.id).catch(()=>{}));toast("Заказ удалён из архива.")}).catch(fail)};
+  };
+  const ro=book.querySelector("#bk-reopen");if(ro)ro.onclick=()=>{const q=quests.find(x=>x.id===ro.dataset.id);if(q)patch(q,{status:"active",doneAt:null},"Заказ снова в работе: он вернулся на доску.")};
+}
+function entriesOf(e){
+  if(!e)return[];if(Array.isArray(e.entries))return e.entries;
+  return (e.text||"").split("\n").map(x=>x.replace(/^\s*[-•]\s*/,"").trim()).filter(Boolean).map(text=>({t:"other",text}));
+}
+function entryLine(en){
+  if(en.t==="quest"&&en.cnt)return "- Заказ «"+en.title+"»: +"+en.cnt+" "+(en.unit||"")+(en.note?" ("+en.note+")":"")+(en.min?", "+fmtLong(en.min):"");
+  if(en.t==="quest")return en.item?"- "+en.item+" (заказ «"+en.title+"»"+(en.min?", "+fmtLong(en.min):"")+")":"- "+(en.done?"Выполнен заказ":"Работа над заказом")+" «"+en.title+"»"+(en.min?" ("+fmtLong(en.min)+")":"");
+  return "- "+en.text+(en.min?" ("+fmtLong(en.min)+")":"");
+}
+async function saveEntries(date,entries){
+  await db.doc("daily/"+date).set({date,entries,text:entries.map(entryLine).join("\n"),by:me?.id||null,at:new Date().toISOString()});
+}
+const JR_TIME='<div class="jr-time"><span class="small muted">Примерное время работы</span><div class="row"><label class="f">Часы<input type="number" id="jr-h" min="0" max="999" value="0" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="jr-m" min="0" max="59" step="5" value="0" inputmode="numeric"></label></div></div>';
+function loggedKeys(){const k=new Set();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.cnt)k.add(x.qid+"|"+(x.i??""))}));return k}
+function freeItems(q,lk){return (q.kind==="checklist"?clean(q.items||[]):[]).map((it,k)=>({it,k})).filter(o=>!lk.has(q.id+"|"+o.k))}
+function questLoggable(q,lk){return !lk.has(q.id+"|")||freeItems(q,lk).length>0}
+function journalRight(sid,e,edit){
+  const ents=entriesOf(e),st=stage&&stage._jadd||null;
+  const li=(en,k)=>{
+    const q=en.t==="quest",sub=q?(en.item||en.cnt?"Заказ «"+esc(en.title)+"»":(en.done?"Заказ выполнен":"Работа над заказом"))+(en.min?" · "+fmtLong(en.min):""):(en.min?fmtLong(en.min):"");
+    const main=q?(en.cnt?"+"+en.cnt+" "+(en.unit||"")+(en.note?" · "+en.note:""):(en.item||en.title)):en.text;
+    return '<li class="jr-it"><span class="jr-tag '+(q?"jq":"jo")+'">'+(q?"Задание":"Другое")+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+'</div>'+
+      (edit?'<button class="jr-del" data-jdel="'+k+'" title="Убрать действие" aria-label="Убрать действие">×</button>':'')+'</li>';
+  };
+  let h=ents.length?'<ol class="jr-list">'+ents.map(li).join("")+'</ol>':'<p class="muted jr-empty">'+(edit?"Пока нет ни одного действия за этот день.":"Менеджер ещё не записал результат за этот день.")+'</p>';
+  if(!edit)return h;
+  if(!st)h+='<button class="jr-add" id="jr-add">+ Добавить действие</button>';
+  else if(st==="pick")h+='<div class="jr-box"><div class="jr-cap">Что добавить?</div><div class="jr-pick"><button class="jr-opt" data-jmode="quest"><b>Задание</b><i>заказ с доски или из архива</i></button><button class="jr-opt" data-jmode="other"><b>Другое</b><i>своими словами</i></button></div><div class="bk-acts"><button class="bk-link" data-jmode="">Отмена</button></div></div>';
+  else if(st==="quest"){
+    const lk=loggedKeys(),act=quests.filter(q=>q.status!=="done"&&questLoggable(q,lk)).sort((a,b)=>(b.takenAt||b.createdAt||"").localeCompare(a.takenAt||a.createdAt||""));
+    const dn=quests.filter(q=>q.status==="done"&&questLoggable(q,lk)).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+    const opt=q=>'<option value="'+q.id+'">'+esc(q.title)+(q.status==="active"||q.status==="review"?" · в работе":"")+'</option>';
+    h+='<div class="jr-box"><div class="jr-cap">Задание</div>'+(act.length||dn.length?
+      '<label class="f">Заказ<select id="jr-q"><option value="">- выбери заказ -</option>'+(act.length?'<optgroup label="На доске и в работе">'+act.map(opt).join("")+'</optgroup>':'')+(dn.length?'<optgroup label="Выполненные">'+dn.map(opt).join("")+'</optgroup>':'')+'</select></label>'+
+      '<label class="f" id="jr-iw" hidden>Что именно<select id="jr-i"></select></label>'+JR_TIME+
+      '<div class="bk-acts"><button class="btn pri" id="jr-ok" disabled>Добавить</button><button class="bk-link" data-jmode="">Отмена</button></div>'
+      :'<p class="muted small">Нет заказов, которые ещё не отмечены в журнале.</p><div class="bk-acts"><button class="bk-link" data-jmode="">Назад</button></div>')+'</div>';
+  }else h+='<div class="jr-box"><div class="jr-cap">Другое</div><textarea id="jr-t" rows="3" placeholder="Что конкретно сделано"></textarea>'+JR_TIME+'<div class="bk-acts"><button class="btn pri" id="jr-ok">Добавить</button><button class="bk-link" data-jmode="">Отмена</button></div></div>';
+  return h;
+}
+const SPREADS={
+  journal(sid){
+    const y=yesterday(),e=daily.find(d=>d.id===sid),done=!!(e&&(e.text||"").trim()),edit=isOwner&&canWrite,prev=shiftDay(sid,-1),next=shiftDay(sid,1);
+    const left='<div class="bk-h">Журнал смены</div><div class="bk-date"><b>'+ru(sid)+'</b><span>'+WD_FULL[new Date(sid+"T12:00:00").getDay()]+(sid===y?" · вчера":sid===today()?" · сегодня":"")+'</span></div>'+
+      '<div class="bk-stamp '+(done?"ok":"bad")+'">'+(done?"ЗАПИСАНО":"НЕ ЗАПИСАНО")+'</div>'+
+      '<p class="small muted">Добавь справа всё, что сделано за этот день: задания, их пункты или другие дела. Заполненный день приносит гильдии +'+DAILY_XP+' XP.</p>'+
+      '<label class="f">Открыть другой день<input type="date" id="bk-day" value="'+sid+'" min="'+GUILD_OPEN+'" max="'+today()+'"></label>'+
+      (sid===GUILD_OPEN?'<p class="small muted">Это первый день работы гильдии, раньше записей нет.</p>':'')+
+      '<div class="bk-nav">'+(prev>=GUILD_OPEN?'<button class="bk-link" data-back="'+prev+'">← '+ruShort(prev)+'</button>':'<span></span>')+(next<=today()?'<button class="bk-link" data-turn="'+next+'">'+ruShort(next)+' →</button>':'<span></span>')+'</div>';
+    const right='<div class="bk-h">Результат дня</div>'+journalRight(sid,e,edit);
+    return{left,right};
+  },
+  status(sid){
+    if(sid==="rules")return{left:'<div class="bk-h">Правила опыта</div><table class="bk-t">'+RANKS.map(r=>'<tr><td><span class="rk rk-'+r+'">'+r+'</span></td><td>'+RANK_HINT[r]+'</td><td class="num">'+RANK_XP[r]+' XP</td></tr>').join("")+'</table>'+
+        '<p class="small">Выполненный пункт заказа: +'+STEP_XP+' XP.<br>Опыт за заказ и его пункты начисляется, когда сданный заказ подтверждён в архиве.<br>Запись в журнале смены: +'+DAILY_XP+' XP.<br>Авантюрист получает опыт своих заказов и растёт в ранге: '+ADV_RANKS.slice(1).map(r=>r[0]+' с '+r[1]+' XP').join(', ')+'.</p>',
+      right:'<div class="bk-h">Ранги гильдии</div><table class="bk-t">'+[["E",1],["D",5],["C",10],["B",20],["A",35],["S",50]].map(([r,l])=>'<tr><td><span class="rk rk-'+r+'">'+r+'</span></td><td>'+GUILD_TITLE[r]+'</td><td class="num">с '+l+' ур.</td></tr>').join("")+'</table>'+
+        '<div class="bk-nav"><button class="bk-link" data-back="main">← К статусу</button><span></span></div>'};
+    const xp=guildXP(),{L,rk}=lvlRank(),done=quests.filter(q=>q.status==="done"),withDl=done.filter(q=>q.deadline);
+    const onTime=withDl.length?Math.round(withDl.filter(q=>(q.doneAt||"").slice(0,10)<=q.deadline).length/withDl.length*100)+"%":"-";
+    return{left:'<div class="bk-crest">'+CREST+'</div><div class="bk-h c">Гильдия искателей приключений</div><div class="bk-big">Уровень '+L.level+'</div><div class="c">Ранг '+rk+' · '+GUILD_TITLE[rk]+'</div>'+
+        '<div class="bigbar"><i style="width:'+(L.into/L.need*100).toFixed(1)+'%"></i></div><div class="small c">'+L.into+' / '+L.need+' XP · всего '+xp+'</div><div class="small c muted">До следующего уровня: '+(L.need-L.into)+' XP</div>'+
+        '<table class="bk-t" style="margin-top:auto">'+kvRows([["Открытие гильдии",ru(GUILD_OPEN)],["Закрытие гильдии",ru(GUILD_CLOSE)]])+'</table>',
+      right:'<div class="bk-h">Показатели</div><table class="bk-t">'+kvRows([["Заказов выполнено",done.length],["В работе",quests.filter(q=>q.status==="active").length],["Ждут подтверждения",quests.filter(q=>q.status==="review").length],["На доске",quests.filter(q=>q.status==="board").length],["Записей в журнале",reports().length]])+'</table>'+
+        '<div class="bk-h s">Выполнено по рангам</div><div class="bk-ranks">'+RANKS.map(r=>'<span><span class="rk rk-'+r+'">'+r+'</span>'+done.filter(q=>q.rank===r).length+'</span>').join("")+'</div>'+
+        '<div class="bk-nav"><span></span><button class="bk-link" data-turn="rules">Правила опыта →</button></div>'};
+  },
+  archive(sid){
+    const pend=quests.filter(q=>q.status==="review").sort((a,b)=>(b.submittedAt||"").localeCompare(a.submittedAt||""));
+    const done=pend.concat(quests.filter(q=>q.status==="done").sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""))),reps=reports().sort((a,b)=>b.id.localeCompare(a.id));
+    if(sid==="home")return{left:'<div class="bk-title"><span>◆</span><b>Архив</b><i>гильдии искателей приключений</i><span>◆</span></div>',
+      right:'<div class="bk-h">Оглавление</div><button class="bk-toc" data-turn="q:0"><span>Сданные заказы'+(pend.length?' <em class="pend-cnt">'+pend.length+' ждут подтверждения</em>':'')+'</span><i></i><b>'+done.length+'</b></button><button class="bk-toc" data-turn="r:0"><span>Записи журнала смены</span><i></i><b>'+reps.length+'</b></button>'+
+        '<p class="small muted" style="margin-top:auto">Выбери раздел, чтобы перелистнуть к нему.</p>'};
+    const [t,arg]=sid.split(":");
+    if(t==="q"||t==="r"){
+      const per=t==="q"?7:3,list=t==="q"?done:reps,p=+arg||0,a=list.slice(p*per*2,p*per*2+per),b=list.slice(p*per*2+per,p*per*2+per*2),more=list.length>(p+1)*per*2;
+      const item=t==="q"?q=>{const ad=advById(q.adv);return '<button class="bk-row" data-turn="qd:'+esc(q.id)+'"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><span class="bk-rt"><b>'+esc(q.title)+'</b><i>'+(ad?esc(ad.name)+' · ':'')+(q.status==="review"?(q.submittedAt?"сдан "+ru(q.submittedAt.slice(0,10)):""):(q.doneAt?ru(q.doneAt.slice(0,10)):''))+'</i>'+(q.status==="review"?'<em class="pend-tag">Ожидает подтверждения</em>':'')+'</span></button>'}
+        :d=>'<article class="bk-rep"><h4>'+ru(d.id)+' · '+wd(d.id)+'</h4><p>'+esc(d.text)+'</p></article>';
+      const nav='<div class="bk-nav">'+(p>0?'<button class="bk-link" data-back="'+t+':'+(p-1)+'">← назад</button>':'<button class="bk-link" data-back="home">← Оглавление</button>')+(more?'<button class="bk-link" data-turn="'+t+':'+(p+1)+'">далее →</button>':'<span></span>')+'</div>';
+      return{left:'<div class="bk-h">'+(t==="q"?"Сданные заказы":"Записи журнала смены")+'</div>'+(a.length?a.map(item).join(""):'<p class="muted">'+(t==="q"?"Ещё ни один заказ не сдан.":"Записей пока нет.")+'</p>'),right:b.map(item).join("")+nav};
+    }
+    if(t==="qd"){
+      const q=quests.find(x=>x.id===arg);if(!q)return SPREADS.archive("q:0");
+      const idx=done.findIndex(x=>x.id===q.id),pg=Math.max(0,Math.floor(idx/14)),a=advById(q.adv);
+      const items=q.kind==="checklist"?'<div class="bk-h s">Пункты</div>'+(q.items||[]).map(it=>'<div class="bk-item'+(it.d?" done":"")+'"><span>'+(it.d?"✓":"○")+'</span><span>'+esc(it.t)+'</span><i>'+[fmtLong(it.min),it.at?ru(it.at):""].filter(Boolean).join(" · ")+'</i></div>').join(""):
+        q.kind==="counter"?'<div class="small">Прогресс: '+(+q.current||0)+' / '+(+q.target||0)+' '+esc(q.unit||"")+'</div>':'';
+      const links=(q.links||[]).map(l=>'<a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a>').join("<br>");
+      const docs=(q.attachments||[]).map(f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>').join("<br>");
+      return{left:'<div class="bk-h">Заказ</div><div class="bk-qt"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><b>'+esc(q.title)+'</b></div>'+(q.desc?'<p class="desc">'+esc(q.desc)+'</p>':'')+
+          '<table class="bk-t">'+kvRows([["Исполнитель",a?a.name+" · "+advCls(a).n:"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",q.doneAt?ru(q.doneAt.slice(0,10)):"-"]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
+          (q.status==="review"?'<div class="pend-plate">Ожидает подтверждения</div>'+(canWrite?'<div class="bk-review"><label class="f">Замечание (если на доработку)<input type="text" id="bk-rnote" maxlength="200"></label><div class="bk-acts"><button class="btn pri" id="bk-ok" data-id="'+esc(q.id)+'">Подтвердить</button><button class="btn ret" id="bk-rework" data-id="'+esc(q.id)+'">На доработку</button></div></div>':''):'')+(q.note?'<p class="small">Замечание: '+esc(q.note)+'</p>':''),
+        right:items+(docs?'<div class="bk-h s">Документы</div><div class="small">'+docs+'</div>':'')+(links?'<div class="bk-h s">Ссылки</div><div class="small">'+links+'</div>':'')+
+          '<div class="bk-h s">Результат</div>'+(q.result?'<p class="desc">'+esc(q.result)+'</p>':'<p class="small muted">Не описан.</p>')+
+          '<div id="bk-delbox"></div><div class="bk-nav"><button class="bk-link" data-back="q:'+pg+'">← К списку</button>'+
+          (canWrite?'<span class="bk-acts"><button class="bk-link" data-turn="qe:'+esc(q.id)+'">Править</button><button class="bk-link danger" id="bk-del" data-id="'+esc(q.id)+'" data-pg="'+pg+'">Удалить</button></span>':'<span></span>')+'</div>'};
+    }
+    if(t==="qe"){
+      const q=quests.find(x=>x.id===arg);if(!q)return SPREADS.archive("q:0");
+      const d=v=>v?esc(v.slice(0,10)):"";
+      return{left:'<div class="bk-h">Правка заказа</div>'+
+          '<label class="f">Название<input type="text" id="ae-title" maxlength="140" value="'+esc(q.title||"")+'"></label>'+
+          '<label class="f">Описание<textarea id="ae-desc" rows="4">'+esc(q.desc||"")+'</textarea></label>'+
+          '<label class="f">Ранг<select id="ae-rank">'+RANKS.map(r=>'<option value="'+r+'"'+(q.rank===r?" selected":"")+'>'+r+' · '+RANK_HINT[r]+' · '+RANK_XP[r]+' XP</option>').join("")+'</select></label>'+
+          '<label class="f">Исполнитель<select id="ae-adv"><option value="">не указан</option>'+rosterSorted().map(a=>'<option value="'+esc(a.id)+'"'+(q.adv===a.id?" selected":"")+'>'+esc(a.name)+' · '+esc(advCls(a).n)+'</option>').join("")+'</select></label>',
+        right:'<div class="bk-h">Даты и итог</div><div class="row"><label class="f">Начат<input type="date" id="ae-taken" value="'+d(q.takenAt)+'"></label><label class="f">Выполнен<input type="date" id="ae-done" value="'+d(q.doneAt)+'"></label></div>'+
+          '<label class="f">Результат<textarea id="ae-res" rows="4">'+esc(q.result||"")+'</textarea></label>'+
+          '<div id="ae-extra" data-id="'+esc(q.id)+'">'+aeExtraHTML(q)+'</div>'+
+          '<div class="bk-nav"><button class="bk-link" data-back="qd:'+esc(q.id)+'">← Отмена</button><button class="btn pri" id="ae-save" data-id="'+esc(q.id)+'">Сохранить</button></div>'};
+    }
+    return SPREADS.archive("home");
+  }
+};
+
+function paperFlight(src,F){
+  if(!src)return{transform:"translateY(40px) scale(.9)",opacity:0};
+  const S=src.getBoundingClientRect(),rot=parseFloat(src.getAttribute("data-rot"))||0;
+  return{transform:"translate("+(S.left+S.width/2-(F.left+F.width/2))+"px,"+(S.top+S.height/2-(F.top+F.height/2))+"px) scale("+(S.width/F.width)+") rotate("+rot+"deg)",opacity:1};
+}
+function srcFor(w){
+  if(w._kind==="adv"){const t=document.querySelector(".stage .ttop");if(!t)return null;return w._mode==="hire"&&!w._id?t.querySelector("[data-hire]"):t.querySelector('[data-dossier="'+w._id+'"]')}
+  const cam=document.querySelector(".stage .cam");if(!cam)return null;
+  return w._mode==="new"&&!w._id?cam.querySelector("[data-newpaper]"):cam.querySelector('[data-paper="'+w._id+'"]');
+}
+function openSheet(id,src,mode,kind){
+  kind=kind||"quest";
+  if(kind==="quest"?(mode!=="new"&&!quests.find(x=>x.id===id)):(mode!=="hire"&&!advById(id)))return;
+  if(sheet)closeSheet(true);
+  const w=document.createElement("div");w.className="sheetwrap";
+  w.innerHTML='<div class="sheetback"></div><article class="sheet" role="dialog" aria-modal="true"></article>';
+  w._id=id;w._mode=mode||"view";w._kind=kind;sheet=w;document.body.appendChild(w);renderSheet(true);
+  w.addEventListener("focusout",()=>setTimeout(()=>{if(sheet===w&&w._stale&&w._mode==="view")renderSheet()},0));
+  const paper=w.querySelector(".sheet"),back=w.querySelector(".sheetback");back.onclick=()=>closeSheet();
+  src=src||srcFor(w);
+  const from=paperFlight(src,paper.getBoundingClientRect());if(src)src.style.visibility="hidden";
+  back.animate([{opacity:0},{opacity:1}],{duration:D(170)});
+  paper.classList.add("flying");
+  paper.animate([from,{transform:"none",opacity:1}],{duration:D(220),easing:"cubic-bezier(.2,.8,.25,1)"}).finished.catch(()=>{})
+    .then(()=>{paper.classList.remove("flying");const f=paper.querySelector(w._mode==="view"?"[data-sheet-close]":"#f-title,#h-name");f&&f.focus()});
+}
+function closeSheet(instant){
+  if(!sheet)return;const w=sheet;sheet=null;pendingCheck=null;
+  const paper=w.querySelector(".sheet"),back=w.querySelector(".sheetback");
+  const src=srcFor(w);if(src&&!instant)src.style.visibility="hidden";
+  const done=()=>{w.remove();renderBoardPanel();fillTable();const f=srcFor(w);if(f)try{f.focus({preventScroll:true})}catch(e){}};
+  if(instant){done();return}
+  paper.scrollTop=0;paper.classList.add("flying");
+  const to=paperFlight(src,paper.getBoundingClientRect());
+  back.animate([{opacity:1},{opacity:0}],{duration:D(190),fill:"forwards"});
+  paper.animate([{transform:"none",opacity:1},to],{duration:D(200),easing:"cubic-bezier(.55,0,.75,.2)",fill:"forwards"}).finished.catch(()=>{}).then(done);
+}
+function renderSheet(force){
+  if(!sheet)return;const w=sheet,paper=w.querySelector(".sheet");
+  if(w._kind==="adv"){renderAdvSheet(w,force);return}
+  const rankSync=()=>{const r=paper.querySelector("#f-rank"),b=paper.querySelector(".sh-h .rk");if(r&&b)r.addEventListener("change",()=>{b.className="rk rk-"+r.value;b.textContent=r.value})};
+  if(w._mode==="new"){
+    if(!force)return;
+    const q={rank:"C",kind:"simple",items:[]};
+    paper.setAttribute("aria-label","Новый заказ");
+    paper.innerHTML='<header class="sh-h"><span class="rk rk-C">C</span><h2>Новый заказ</h2><span class="stamp2 st-board">ЧЕРНОВИК</span><button class="x" data-sheet-close aria-label="Отложить листок">×</button></header>'+questForm(q,true);
+    bindQuestForm(paper,q,null,id=>{if(sheet!==w)return;w._id=id;w._mode="view";closeSheet()},()=>closeSheet());
+    rankSync();paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();return;
+  }
+  const q=quests.find(x=>x.id===w._id);
+  if(!q){closeSheet(true);return}
+  if(w._mode==="edit"){
+    if(!force)return;
+    paper.setAttribute("aria-label","Правка заказа: "+q.title);
+    paper.innerHTML='<header class="sh-h"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><h2>Правка заказа</h2><span class="stamp2 st-board">ПРАВКА</span><button class="x" data-sheet-close aria-label="Положить заказ обратно на доску">×</button></header>'+questForm(q,false);
+    const back=()=>{if(sheet!==w)return;w._mode="view";renderSheet(true)};
+    bindQuestForm(paper,q,q,back,back);
+    rankSync();paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();return;
+  }
+  const ae=document.activeElement;
+  if(!force&&ae&&paper.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.type!=="checkbox"){w._stale=true;return}
+  w._stale=false;const st=paper.scrollTop;
+  paper.setAttribute("aria-label","Заказ: "+q.title);
+  paper.innerHTML='<header class="sh-h"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><h2>'+esc(q.title)+'</h2><span class="stamp2 st-'+q.status+'">'+STATUS[q.status]+'</span><button class="x" data-sheet-close aria-label="Положить заказ обратно на доску">×</button></header>'+questBody(q,true);
+  paper.scrollTop=st;
+  bindQuest(paper,q);paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();
+}
+function renderModal(){
+  if(!modalState)return;const m=$("#modal"),{kind,arg}=modalState;
+  if(kind==="new"||kind==="edit"){
+    const q=kind==="edit"?quests.find(x=>x.id===arg):{rank:"C",kind:"simple",items:[]};
+    if(!q){closeModal();return}
+    m.innerHTML=shell(kind==="new"?"НОВЫЙ ЗАКАЗ":"ПРАВКА",kind==="new"?"Новый заказ":"Правка заказа",questForm(q,kind==="new"));
+    bindQuestForm(m,q,kind==="edit"?q:null,null,closeModal);
+  }
+  else if(kind==="list"){
+    const col=(arg==="work"?quests.filter(q=>q.status==="active"):quests.filter(q=>q.status==="board")).sort(sortQ);
+    m.innerHTML=shell("ДОСКА",arg==="work"?"Все заказы в работе":"Все новые заказы",col.length?'<div class="qlist">'+col.map(qRow).join("")+'</div>':'<div class="empty">Пусто.</div>');
+  }
+  else if(kind==="quest"){
+    const q=quests.find(x=>x.id===arg);if(!q){closeModal();return}
+    m.innerHTML=shell("ЗАКАЗ",q.title,questBody(q,false));
+    bindQuest(m,q);
+  }
+  else if(kind==="advs"){
+    const list=advs.slice().sort((a,b)=>activeOf(a).length-activeOf(b).length||a.name.localeCompare(b.name));
+    m.innerHTML=shell("ЗАЛ","Авантюристы гильдии",
+      '<p class="small muted" style="margin:0">Каждый авантюрист - одно направление твоей работы. Его уровень растёт от выполненных заказов, а характеристики показывают, как идут дела в этом направлении.</p>'+
+      (list.length?'<div class="advs">'+list.map(a=>{const s=advStats(a),act=activeOf(a);
+        return '<button class="adv" data-adv="'+esc(a.id)+'">'+portrait(a)+'<span><b>'+esc(a.name)+'</b><span class="cls">'+esc(advCls(a).n)+' · '+esc(a.area||advCls(a).area)+'</span>'+
+        '<span class="lvl" style="display:block">Ранг '+s.rank+'</span>'+
+        '<span class="st" style="display:block;color:'+(act.length?"var(--gold)":"var(--ok)")+'">'+(act.length?"На задании: "+esc(act.map(q=>q.title).join(", ")):"Свободен, сидит за столом")+'</span></span></button>'}).join("")+'</div>':
+      '<div class="empty">За столами пусто. Найми первого авантюриста.</div>')+
+      '<div class="row"><span class="small muted" style="flex:1 1 200px">Мест в гильдии: '+advs.length+' / '+MAX_ADVS+'</span>'+
+      (canWrite&&advs.length<MAX_ADVS?'<button class="btn pri" data-act="hire" style="flex:0 0 auto">+ Нанять авантюриста</button>':"")+'</div>');
+    m.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>openModal("adv",b.dataset.adv));
+    const h=m.querySelector('[data-act="hire"]');if(h)h.onclick=()=>openModal("hire");
+  }
+  else if(kind==="adv"){
+    const a=advById(arg);if(!a){closeModal();return}
+    const s=advStats(a),act=activeOf(a),done=s.mine.filter(q=>q.status==="done").sort((x,y)=>(y.doneAt||"").localeCompare(x.doneAt||""));
+    const stat=(n,v,pct,hint)=>'<div class="stat" title="'+esc(hint)+'"><small><span>'+n+'</span></small><b>'+v+'</b>'+(pct!=null?'<div class="bar"><i style="width:'+Math.min(100,pct)+'%"></i></div>':"")+'<div class="small muted">'+hint+'</div></div>';
+    m.innerHTML=shell("АВАНТЮРИСТ",a.name,
+      '<div class="advhead">'+portrait(a)+'<div><div class="state"><span class="pill gold">Ранг '+s.rank+'</span>'+(act.length?'<span class="pill gold">На задании</span>':'<span class="pill ok">Свободен</span>')+'</div>'+
+      '<div style="margin-top:6px">'+esc(advCls(a).n)+' · <span class="muted">'+esc(a.area||advCls(a).area)+'</span></div>'+
+      '<div class="xpbar" style="margin-top:6px"><i style="width:'+s.R.pct.toFixed(1)+'%"></i></div><div class="small muted" style="font-family:var(--f-num)">'+rankLine(s)+'</div></div></div>'+
+      (a.bio?'<p class="desc">'+esc(a.bio)+'</p>':"")+
+      '<h3 class="sec">Характеристики</h3><div class="stats">'+
+        stat("Сила",s.might,null,"сумма рангов выполненных заказов")+
+        stat("Точность",s.onTime==null?"-":s.onTime+"%",s.onTime,"заказы, сданные в срок")+
+        stat("Выносливость",s.stamina,null,"записанные шаги прогресса")+
+      '</div>'+
+      '<h3 class="sec">Сейчас</h3>'+(act.length?'<div class="qlist">'+act.map(qRow).join("")+'</div>':'<div class="empty">Свободен. Выдай заказ с доски.</div>')+
+      '<h3 class="sec">Выполнено · '+done.length+'</h3>'+(done.length?'<div class="qlist">'+done.map(qRow).join("")+'</div>':'<div class="empty">Пока ничего.</div>')+
+      '<div class="row"><button class="btn ghost" data-close-to="advs" style="flex:0 0 auto">← Ко всем</button>'+(canWrite?'<button class="btn ghost" data-act="edit" style="flex:0 0 auto">Править</button><button class="btn warn" data-act="fire" style="flex:0 0 auto">Уволить</button>':"")+'</div><div id="delbox"></div>');
+    m.querySelector("[data-close-to]").onclick=()=>openModal("advs");
+    const e=m.querySelector('[data-act="edit"]');if(e)e.onclick=()=>openModal("hire",a.id);
+    const f=m.querySelector('[data-act="fire"]');if(f)f.onclick=()=>{
+      if(act.length){$("#delbox").innerHTML='<div class="confirm">Сначала сними с авантюриста заказы в работе.</div>';return}
+      $("#delbox").innerHTML='<div class="confirm">Уволить '+esc(a.name)+'? Выполненные заказы останутся в архиве. <button class="btn warn sm" id="del-yes">Уволить</button><button class="btn ghost sm" id="del-no">Отмена</button></div>';
+      $("#del-no").onclick=()=>$("#delbox").innerHTML="";
+      $("#del-yes").onclick=async()=>{try{await db.doc("adventurers/"+a.id).delete();toast(a.name+" покинул гильдию.");openModal("advs")}catch(e){fail(e)}}};
+  }
+  else if(kind==="hire"){
+    const taken=new Set(advs.filter(x=>x.id!==arg).map(x=>x.cls));
+    if(!arg&&advs.length>=MAX_ADVS){openModal("advs");return}
+    const a=arg?advById(arg):{cls:Object.keys(CLASSES).find(k=>!taken.has(k))||"chron"};if(!a){closeModal();return}
+    m.innerHTML=shell(arg?"ПРАВКА":"НАЙМ",arg?"Правка авантюриста":"Нанять авантюриста",
+      '<div class="row"><label class="f">Имя<input type="text" id="h-name" maxlength="40" value="'+esc(a.name||"")+'" placeholder="Например: Мира"></label>'+
+      '<label class="f">Класс<select id="h-cls">'+Object.keys(CLASSES).map(k=>'<option value="'+k+'"'+(a.cls===k?" selected":"")+(taken.has(k)?" disabled":"")+'>'+CLASSES[k].n+' · '+CLASSES[k].area+(taken.has(k)?" (уже есть)":"")+'</option>').join("")+'</select></label></div>'+
+      '<label class="f">Направление работы<input type="text" id="h-area" maxlength="80" value="'+esc(a.area||"")+'" placeholder="Оставь пустым, чтобы взять направление класса"></label>'+
+      '<label class="f">Характер и история<textarea id="h-bio" placeholder="Пара строк о персонаже">'+esc(a.bio||"")+'</textarea></label>'+
+      '<div class="row"><button class="btn pri" id="h-save" style="flex:0 0 auto">'+(arg?"Сохранить":"Нанять")+'</button><button class="btn ghost" data-close style="flex:0 0 auto">Отмена</button></div>');
+    $("#h-save").onclick=()=>saveAdv(arg?a:null);
+  }
+  else if(kind==="guild"){
+    const xp=guildXP(),{L,rk}=lvlRank(),done=quests.filter(q=>q.status==="done");
+    const withDl=done.filter(q=>q.deadline),onTime=withDl.length?Math.round(withDl.filter(q=>(q.doneAt||"").slice(0,10)<=q.deadline).length/withDl.length*100)+"%":"-";
+    const top=advs.map(a=>({a,s:advStats(a)})).sort((x,y)=>y.s.xp-x.s.xp);
+    m.innerHTML=shell("СТАТУС","Статус гильдии",
+      '<div class="kv"><div><small>Уровень</small><b>'+L.level+'</b></div><div><small>Ранг</small><b>'+rk+' · '+GUILD_TITLE[rk]+'</b></div><div><small>Опыт</small><b>'+xp+' XP</b></div><div><small>До уровня</small><b>'+(L.need-L.into)+' XP</b></div>'+
+      '<div><small>Заказов выполнено</small><b>'+done.length+'</b></div><div><small>В срок</small><b>'+onTime+'</b></div><div><small>В работе</small><b>'+quests.filter(q=>q.status==="active").length+'</b></div><div><small>На доске</small><b>'+quests.filter(q=>q.status==="board").length+'</b></div>'+
+      '<div><small>Авантюристов</small><b>'+advs.length+'</b></div><div><small>Отчётов в журнале</small><b>'+reports().length+'</b></div><div><small>Серия отчётов</small><b>'+streak()+' дн.</b></div></div>'+
+      '<div class="small muted">Выполнено по рангам: '+RANKS.map(r=>r+" "+done.filter(q=>q.rank===r).length).join(" · ")+'</div>'+
+      (top.length?'<h3 class="sec">Отряд по опыту</h3><div class="qlist">'+top.map(({a,s})=>'<button class="q" data-adv="'+esc(a.id)+'"><span class="rk rk-'+s.rank+'">'+s.rank+'</span><span class="q-t"><b>'+esc(a.name)+'</b><span>'+esc(advCls(a).n)+'</span></span><span class="q-r">'+s.xp+' XP</span></button>').join("")+'</div>':"")+
+      '<div class="small muted">Опыт гильдии: заказ E '+RANK_XP.E+' · D '+RANK_XP.D+' · C '+RANK_XP.C+' · B '+RANK_XP.B+' · A '+RANK_XP.A+' · S '+RANK_XP.S+'. Выполненный пункт заказа +'+STEP_XP+'. Отчёт в журнале смены +'+DAILY_XP+'. Авантюрист получает опыт своих заказов.</div>');
+    m.querySelectorAll("[data-adv]").forEach(b=>b.onclick=()=>openModal("adv",b.dataset.adv));
+  }
+  else if(kind==="archive"){
+    const tab=arg||"quests";
+    const done=quests.filter(q=>q.status==="done").sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+    const reps=reports().sort((a,b)=>b.id.localeCompare(a.id));
+    m.innerHTML=shell("АРХИВ","Архив",
+      '<div class="tabs" role="tablist"><button class="tab" role="tab" aria-selected="'+(tab==="quests")+'" data-tab="quests">Выполненные заказы<em>'+done.length+'</em></button><button class="tab" role="tab" aria-selected="'+(tab==="reports")+'" data-tab="reports">Отчёты смен<em>'+reps.length+'</em></button></div>'+
+      (tab==="quests"?(done.length?'<div class="qlist">'+done.map(qRow).join("")+'</div>':'<div class="empty">Архив пуст: ещё ни один заказ не засчитан.</div>'):
+      (reps.length?'<div class="chron">'+reps.map(d=>'<article><h4>'+ru(d.id)+' · '+wd(d.id)+'</h4><p>'+esc(d.text)+'</p></article>').join("")+'</div>':'<div class="empty">Отчётов пока нет. Запиши первый в журнале смены на стойке.</div>')));
+  }
+  else if(kind==="ledger"){
+    const y=yesterday(),sel=arg||y,entry=daily.find(d=>d.id===sel),done=!!(entry&&(entry.text||"").trim());
+    let body='<div class="state">'+(done?'<span class="pill ok">ЗАПИСАНО</span>':'<span class="pill bad">НЕ ЗАПИСАНО</span>')+
+      '<span class="small muted">'+(sel===y?"Вчера, ":"")+ru(sel)+" ("+wd(sel)+") · +"+DAILY_XP+" XP гильдии</span></div>";
+    if(isOwner&&canWrite){
+      body+='<label class="f">Конкретный результат за этот день<textarea id="dtext" placeholder="Например: дописал главу 3 книги (12 страниц), собрал макет доски заказов, разобрал 2 референса">'+esc(entry?.text||"")+'</textarea></label>'+
+        '<div class="row"><label class="f" style="flex:0 1 170px">День<input type="date" id="ddate" value="'+sel+'" max="'+today()+'"></label><button class="btn pri" id="dsave" style="flex:0 0 auto">'+(done?"Исправить запись":"Записать в журнал")+'</button></div>';
+    }else{
+      body+=done?'<p class="desc">'+esc(entry.text)+'</p>':'<p class="muted" style="margin:0">Менеджер ещё не записал результат за этот день.</p>';
+      body+='<div class="row"><label class="f" style="flex:0 1 170px">День<input type="date" id="ddate" value="'+sel+'" max="'+today()+'"></label></div>';
+    }
+    body+='<p class="small muted" style="margin:0">Каждый день записывается отдельно. Все записи лежат в архиве на правой полке.</p>';
+    m.innerHTML=shell("ЖУРНАЛ СМЕНЫ","Результат за вчера",body);
+    $("#ddate").onchange=e=>{modalState.arg=e.target.value||y;renderModal()};
+    const s=$("#dsave");if(s)s.onclick=saveDaily;
+  }
+  m.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModal);
+  m.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{modalState.arg=b.dataset.tab;renderModal()});
+  m.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openModal(b.dataset.open));
+  m.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>openModal("quest",b.dataset.q));
+}
+
+/* ---------- checklist editor ---------- */
+function renderItems(focus){
+  const box=$("#f-items");if(!box)return;
+  box.innerHTML=draft.map((it,i)=>'<div class="item'+(it.d?" isdone":"")+'"><span class="num" title="'+(it.d?"выполнено":"")+'">'+(it.d?"✓":i+1)+'</span>'+
+    '<input type="text" id="f-item-'+i+'" data-i="'+i+'" maxlength="140" value="'+esc(it.t)+'" placeholder="Например: Глава '+(i+1)+'" aria-label="Пункт '+(i+1)+'">'+
+    '<button type="button" class="ib" data-up="'+i+'" aria-label="Поднять пункт '+(i+1)+'"'+(i===0?" disabled":"")+'>↑</button>'+
+    '<button type="button" class="ib" data-down="'+i+'" aria-label="Опустить пункт '+(i+1)+'"'+(i===draft.length-1?" disabled":"")+'>↓</button>'+
+    '<button type="button" class="ib rm" data-rm="'+i+'" aria-label="Удалить пункт '+(i+1)+'">×</button></div>').join("")||
+    '<div class="empty">Пунктов пока нет. Добавь первый.</div>';
+  box.querySelectorAll("input[data-i]").forEach(inp=>{
+    inp.oninput=()=>{draft[+inp.dataset.i].t=inp.value};
+    inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addItem(+inp.dataset.i+1)}
+      else if(e.key==="Backspace"&&!inp.value&&draft.length>1){e.preventDefault();const i=+inp.dataset.i;draft.splice(i,1);renderItems(Math.max(0,i-1))}};
+  });
+  box.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[draft[i-1],draft[i]]=[draft[i],draft[i-1]];renderItems(i-1)});
+  box.querySelectorAll("[data-down]").forEach(b=>b.onclick=()=>{const i=+b.dataset.down;[draft[i+1],draft[i]]=[draft[i],draft[i+1]];renderItems(i+1)});
+  box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{const i=+b.dataset.rm;draft.splice(i,1);renderItems(Math.min(i,draft.length-1))});
+  if(focus!=null&&focus>=0){const f=$("#f-item-"+focus);if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length)}}
+}
+function addItem(at){draft.splice(at,0,{t:"",d:false});renderItems(at)}
+
+/* ---------- writes ---------- */
+function fail(e){const c=e&&e.code;toast(c==="invalid_argument"?"Нет прав на изменение. Попроси владельца дать доступ на редактирование.":c==="quota_exceeded"?"База переполнена: удали старые заказы.":"Не получилось сохранить. Попробуй ещё раз.");if(c==="invalid_argument"){canWrite=false;renderAll()}}
+const clean=o=>JSON.parse(JSON.stringify(o));
+async function saveDaily(){
+  const date=$("#ddate").value||yesterday(),text=$("#dtext").value.trim();
+  if(!text){toast("Опиши хотя бы один конкретный результат.");return}
+  const btn=$("#dsave");btn.disabled=true;
+  try{await db.doc("daily/"+date).set({date,text,by:me?.id||null,at:new Date().toISOString()});toast("Запись за "+ru(date)+" внесена в журнал. +"+DAILY_XP+" XP");if(modalState?.kind==="ledger"){modalState.arg=date;renderModal()}}
+  catch(e){fail(e)}finally{const b=$("#dsave");if(b)b.disabled=false}
+}
+function checkFile(f){
+  const ext=extOf(f.name);
+  if(!ATT_TYPES[ext])return "Формат ."+ext+" не поддерживается: сохрани файл в PDF и прикрепи снова.";
+  const max=ext==="svg"?2:20;if(f.size>max*1048576)return "Файл «"+f.name+"» больше "+max+" МБ.";
+  if(!f.size)return "Файл «"+f.name+"» пустой.";
+  return "";
+}
+function attErr(e,name){const c=e&&e.code;
+  return c==="too_large"?"Файл «"+name+"» слишком большой.":c==="unsupported_type"?"Формат «"+name+"» не поддерживается.":c==="quota_or_state"?"Хранилище гильдии заполнено: открепи старые документы.":
+    c==="rate_limited"?"Слишком много загрузок подряд. Подожди немного.":c==="not_granted"?"Прикреплять файлы могут только редакторы гильдии.":"Не удалось загрузить «"+name+"». Попробуй ещё раз."}
+function refreshQuestViews(){renderSheet(true);renderAeExtra();if(modalState&&modalState.kind==="quest")renderModal()}
+async function uploadFiles(qid,files){
+  if(!assetsApi){toast("Прикреплять файлы могут только редакторы гильдии.");return}
+  for(const f of files){
+    const bad=checkFile(f);if(bad){toast(bad);continue}
+    (uploading[qid]=uploading[qid]||[]).push(f.name);refreshQuestViews();
+    try{
+      const r=await assetsApi.upload(f,{type:ATT_TYPES[extOf(f.name)]});
+      const cur=quests.find(x=>x.id===qid);
+      if(!cur){assetsApi.delete(r.id).catch(()=>{});continue}
+      const list=(cur.attachments||[]).concat({id:r.id,name:f.name,size:r.sizeBytes,type:r.contentType,at:new Date().toISOString(),by:me?.id||null});
+      await db.doc("quests/"+qid).update({attachments:list,updatedAt:new Date().toISOString()});
+      toast("Документ прикреплён: «"+f.name+"».");
+    }catch(e){toast(e&&e.code&&!/^(invalid_argument|quota_exceeded|unavailable|revoked)$/.test(e.code)?attErr(e,f.name):"Не удалось прикрепить «"+f.name+"».")}
+    finally{const u=uploading[qid]||[];const i=u.indexOf(f.name);if(i>=0)u.splice(i,1);refreshQuestViews()}
+  }
+}
+async function removeAttachment(qid,f){
+  const cur=quests.find(x=>x.id===qid);if(!cur)return;
+  try{await db.doc("quests/"+qid).update({attachments:(cur.attachments||[]).filter(x=>x.id!==f.id),updatedAt:new Date().toISOString()});
+    if(assetsApi)assetsApi.delete(f.id).catch(()=>{});toast("Документ «"+f.name+"» откреплён.")}
+  catch(e){fail(e)}
+}
+async function confirmCheck(addReport){
+  const pc=pendingCheck;if(!pc)return;pendingCheck=null;
+  const cur=quests.find(x=>x.id===pc.qid);if(!cur){refreshQuestViews();return}
+  const mn=(parseInt(pc.h,10)||0)*60+(parseInt(pc.m,10)||0),dd=pc.d||today();
+  if(pc.type==="count"){
+    const total=(+cur.current||0)+pc.n,h=pushHist(cur,"+"+pc.n,pc.note);const last=h[h.length-1];last.day=dd;if(mn)last.min=mn;
+    refreshQuestViews();
+    await patch(cur,{current:total,history:h},"Прогресс записан: "+total+" / "+cur.target+" "+(cur.unit||"")+".");
+    if(addReport){const en={t:"quest",qid:cur.id,i:"c"+Date.now(),title:cur.title,cnt:pc.n,unit:cur.unit||"",note:pc.note||""};if(mn)en.min=mn;await appendDaily(dd,en)}
+    return;
+  }
+  if(pc.type==="submit"){
+    const at=dd===today()?new Date().toISOString():dd+"T12:00:00.000Z",data={status:"review",submittedAt:at,result:pc.res||cur.result||"",note:""};if(mn)data.doneMin=mn;
+    refreshQuestViews();
+    await patch(cur,data,"Заказ сдан и ушёл в архив. Опыт начислится после подтверждения.");
+    if(sheet&&sheet._id===cur.id)closeSheet(true);
+    if(addReport){const en={t:"quest",qid:cur.id,i:null,title:cur.title,done:true};if(mn)en.min=mn;await appendDaily(dd,en)}
+    return;
+  }
+  const items=clean(cur.items||[]),it=items[pc.i];if(!it){refreshQuestViews();return}
+  const min=(parseInt(pc.h,10)||0)*60+(parseInt(pc.m,10)||0);
+  it.d=true;it.at=pc.d||today();if(min>0)it.min=min;else delete it.min;
+  refreshQuestViews();
+  await patch(cur,{items,history:pushHist(cur,"✓",it.t)},"Пункт выполнен: «"+it.t+"». +"+STEP_XP+" XP после подтверждения заказа");
+  if(addReport){const en={t:"quest",qid:cur.id,i:pc.i,title:cur.title,item:it.t};if(min)en.min=min;await appendDaily(it.at,en)}
+}
+async function uncheckItem(q,i){const items=clean(q.items||[]);if(!items[i])return;items[i].d=false;delete items[i].at;delete items[i].min;await patch(q,{items},null)}
+async function appendDaily(date,line){
+  const l=entriesOf(daily.find(d=>d.id===date)).filter(x=>!(x.t==="quest"&&x.qid===line.qid&&x.i===line.i));l.push(line);
+  try{await saveEntries(date,l);toast("Добавлено в журнал за "+ru(date)+".")}catch(err){fail(err)}
+}
+async function saveQuest(old,after){
+  const title=$("#f-title").value.trim();if(!title){toast("Дай заказу название.");return}
+  const kind=$("#f-kind").value;
+  const q=old?clean(old):{id:uid(),status:"board",createdAt:new Date().toISOString(),createdBy:me?.id||null,history:[],current:0,adv:null};
+  Object.assign(q,{title,desc:$("#f-desc").value.trim(),rank:$("#f-rank").value,deadline:$("#f-dl").value||"",kind});
+  const fc=$("#f-created"),ft=$("#f-taken"),isoD=(v,prev)=>prev&&prev.slice(0,10)===v?prev:v+"T12:00:00.000Z";
+  if(fc&&fc.value){if(fc.value>today()){toast("Дата создания не может быть в будущем.");return}q.createdAt=isoD(fc.value,q.createdAt)}
+  if(ft&&ft.value){if(ft.value>today()){toast("Дата начала не может быть в будущем.");return}if(fc&&fc.value&&ft.value<fc.value){toast("Заказ не может начаться раньше, чем создан.");return}q.takenAt=isoD(ft.value,q.takenAt)}
+  if(kind==="counter"){const t=parseInt($("#f-target").value,10);if(!(t>0)){toast("Укажи цель числом, например 300.");return}q.target=t;q.unit=$("#f-unit").value.trim();q.current=q.current||0}
+  if(kind==="checklist"){
+    const items=draft.map(i=>({t:i.t.trim(),d:!!i.d})).filter(i=>i.t);
+    if(!items.length){toast("Добавь хотя бы один пункт чек-листа.");return}
+    q.items=items;
+  }
+  q.updatedAt=new Date().toISOString();const id=q.id;delete q.id;
+  $("#f-save").disabled=true;
+  const files=old?[]:pendingFiles.splice(0);
+  try{await db.doc("quests/"+id).set(q);toast(old?"Заказ обновлён.":"Новый заказ на доске: «"+title+"».");if(files.length)uploadFiles(id,files);if(after)after(id);else openModal("quest",id)}
+  catch(e){fail(e);const b=$("#f-save");if(b)b.disabled=false}
+}
+async function saveAdv(old,after){
+  const name=$("#h-name").value.trim();if(!name){toast("Дай авантюристу имя.");return}
+  const cls=$("#h-cls").value;
+  const data={name,cls,area:$("#h-area").value.trim(),bio:$("#h-bio").value.trim(),color:CLASSES[cls].c};
+  const id=old?old.id:uid();if(!old)data.createdAt=new Date().toISOString();
+  $("#h-save").disabled=true;
+  try{if(old)await db.doc("adventurers/"+id).update(data);else await db.doc("adventurers/"+id).set(data);toast(old?"Данные обновлены.":name+" вступает в гильдию.");if(after)after(id);else openModal("adv",id)}
+  catch(e){fail(e);const b=$("#h-save");if(b)b.disabled=false}
+}
+async function cancelQuest(q0){
+  const q=quests.find(x=>x.id===q0.id)||q0;pendingCheck=null;
+  const data={status:"board",adv:null,takenAt:null,submittedAt:null,doneAt:null,doneMin:null,current:0,history:[],result:"",note:""};
+  if(q.kind==="checklist")data.items=clean(q.items||[]).map(i=>({t:i.t,d:false}));
+  try{
+    await db.doc("quests/"+q.id).update(Object.assign({updatedAt:new Date().toISOString()},data));
+    let n=0;
+    for(const d of daily){const ents=entriesOf(d);if(!ents.some(x=>x.t==="quest"&&x.qid===q.id))continue;
+      const left=ents.filter(x=>!(x.t==="quest"&&x.qid===q.id));n++;await saveEntries(d.id,left)}
+    toast("Заказ «"+q.title+"» возвращён в «Новые», прогресс сброшен."+(n?" Записи в журнале убраны ("+n+" "+(n===1?"день":n<5?"дня":"дней")+").":""));
+  }catch(e){fail(e)}
+}
+async function patch(q,data,msg){try{await db.doc("quests/"+q.id).update(Object.assign({updatedAt:new Date().toISOString()},data));if(msg)toast(msg)}catch(e){fail(e)}}
+function pushHist(q,delta,note){const h=(q.history||[]).slice(-199);h.push({at:new Date().toISOString(),by:me?.id||null,delta:String(delta),note:note||""});return h}
+async function addCount(q){
+  const n=parseInt($("#c-delta").value,10);if(!(n>0)){toast("Введи, сколько сделано, числом.");return}
+  pendingCheck={type:"count",qid:q.id,n,note:$("#c-note").value.trim(),unit:q.unit||"",step:"form",h:"0",m:"0",d:today()};refreshQuestViews();
+}
+async function toggleItem(q,i,val){
+  const items=clean(q.items||[]);items[i].d=val;
+  const data={items};if(val)data.history=pushHist(q,"✓",items[i].t);
+  await patch(q,data,val?"Подзадача выполнена: «"+items[i].t+"». +"+STEP_XP+" XP":null);
+}
+async function questAct(q,a){
+  const now=new Date().toISOString(),pick=$("#a-pick")?.value||null,pa=advById(pick);
+  if(a==="take"){if(!pa){toast("Выбери авантюриста.");return}if(activeOf(pa).filter(z=>z.id!==q.id).length>=MAX_ACTIVE){toast(pa.name+" уже на задании. Каждый авантюрист берёт только один заказ за раз.");return}return patch(q,{status:"active",adv:pick,takenAt:now},pa.name+" отправляется выполнять заказ.")}
+  if(a==="reassign"){if(!pa||pick===q.adv)return;if(activeOf(pa).filter(z=>z.id!==q.id).length>=MAX_ACTIVE){toast(pa.name+" уже на задании.");return}return patch(q,{adv:pick},"Заказ передан: "+pa.name+".")}
+  if(a==="submit"){if(q.kind!=="simple"&&progressOf(q)<1){toast(q.kind==="checklist"?"Сначала выполни все пункты.":"Сначала запиши весь прогресс.");return}}
+  if(a==="submit"){const tm=q.kind==="checklist"?(q.items||[]).reduce((t,i)=>t+(i.d&&+i.min||0),0):q.kind==="counter"?(q.history||[]).reduce((t,h)=>t+(+h.min||0),0):0;
+    pendingCheck={type:"submit",qid:q.id,res:($("#r-res")?.value||"").trim(),step:"form",h:String(Math.floor(tm/60)),m:String(tm%60),d:today()};refreshQuestViews();return}
+  if(a==="accept"){pendingCheck={type:"accept",qid:q.id,step:"form",h:"0",m:"0",d:today()};refreshQuestViews();return}
+  if(a==="return")return patch(q,{status:"active",note:($("#r-note")?.value||"").trim()},"Заказ возвращён на доработку.");
+  if(a==="unassign")return patch(q,{status:"board",adv:null},"Заказ снова висит на доске.");
+  if(a==="reopen")return patch(q,{status:"active",doneAt:null},"Заказ снова в работе.");
+  if(a==="edit"){if(sheet&&sheet._id===q.id){sheet._mode="edit";renderSheet(true);return}return openModal("edit",q.id)}
+  if(a==="cancel"){const a2=advById(q.adv);$("#delbox").innerHTML='<div class="confirm">Вернуть заказ на доску? Он вернётся в «Новые», весь прогресс обнулится, записи о нём исчезнут из журнала'+(a2?', а '+esc(a2.name)+' станет свободен':'')+'. <button class="btn ret sm" id="cn-yes">Вернуть</button><button class="btn ghost sm" id="cn-no">Не возвращать</button></div>';
+    $("#cn-no").onclick=()=>$("#delbox").innerHTML="";
+    $("#cn-yes").onclick=()=>cancelQuest(q);return}
+  if(a==="del"){$("#delbox").innerHTML='<div class="confirm">Удалить заказ навсегда? <button class="btn warn sm" id="del-yes">Удалить</button><button class="btn ghost sm" id="del-no">Отмена</button></div>';
+    $("#del-no").onclick=()=>$("#delbox").innerHTML="";
+    $("#del-yes").onclick=async()=>{try{await db.doc("quests/"+q.id).delete();if(assetsApi)(q.attachments||[]).forEach(f=>assetsApi.delete(f.id).catch(()=>{}));toast("Заказ удалён.");if(sheet&&sheet._id===q.id)closeSheet(true);else closeModal()}catch(e){fail(e)}}}
+}
+
+const FORMS=new Set(["new","edit","hire","ledger"]);
+function renderAll(){renderHUD();renderActive();drawHall();if(!(modalState&&FORMS.has(modalState.kind)))renderModal();renderBoardPanel();fillTable();refreshBook();renderSheet();
+  document.querySelectorAll('.wrap [data-open="new"]').forEach(b=>b.hidden=!canWrite);}
+
+/* ---------- wiring ---------- */
+document.addEventListener("click",e=>{
+  const o=e.target.closest(".wrap [data-open]");if(o){openModal(o.dataset.open);return}
+  const q=e.target.closest(".wrap [data-q]");if(q)openModal("quest",q.dataset.q);
+});
+function ringBell(){
+  const L=$("#bellLayer");if(!L)return;
+  const old=[...L.children],before=old.map(b=>b.getBoundingClientRect().top);
+  const b=document.createElement("div");b.className="bub";b.textContent="Дзынь!";L.appendChild(b);
+  old.forEach((o,i)=>{const d=before[i]-o.getBoundingClientRect().top;if(d)o.animate([{translate:"0 "+d+"px"},{translate:"0 0"}],{duration:180,easing:"ease-out"})});
+  setTimeout(()=>{b.classList.add("fade");setTimeout(()=>b.remove(),1000)},3000);
+  const g=$("#hall .bell");if(g){g.classList.remove("ring");void g.getBoundingClientRect();g.classList.add("ring")}
+}
+$("#hall").addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-bell]"))ringBell()});
+$("#hall").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.closest&&e.target.closest("[data-bell]")){e.preventDefault();ringBell();return}const t=e.target.closest&&e.target.closest("[data-open]");if((e.key==="Enter"||e.key===" ")&&t){e.preventDefault();openModal(t.dataset.open)}});
+$("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(!$("#modal").hidden)closeModal();else if(sheet)closeSheet();else if(stage)closeBoard()});
+
+renderAll();
+$("#activeList").innerHTML='<div class="empty">Открываю гильдию...</div>';
+
+let qIn=false,dIn=false;
+(async function boot(){
+  if(!window.claude||!window.claude.use){$("#status").hidden=false;$("#status").textContent="Гильдия открыта вне Claude: заказы не загружаются. Открой ссылку на артефакт.";return}
+  [db,user,assetsApi]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("assets").catch(()=>null)]);
+  if(!db){$("#status").hidden=false;$("#status").textContent="База гильдии недоступна. Войди в аккаунт Claude, чтобы видеть и создавать заказы.";$("#activeList").innerHTML='<div class="empty">Заказы недоступны.</div>';return}
+  if(user){me=await user.me();isOwner=me.isOwner;const c=await user.can("data.write");canWrite=c!==false;}
+  if(!canWrite){$("#status").hidden=false;$("#status").textContent="Режим просмотра: у тебя нет прав создавать и менять заказы.";}
+  db.doc("meta/hunter").onSnapshot(s=>{ownerId=s.exists?s.data().ownerId:null;
+    if(isOwner&&me?.id&&ownerId!==me.id&&canWrite){db.doc("meta/hunter").set({ownerId:me.id}).catch(()=>{})}
+    renderName()},()=>{});
+  db.collection("quests").onSnapshot(s=>{quests=s.docs.map(d=>Object.assign({id:d.id},d.data()));qIn=true;renderAll();
+      if(!loaded&&dIn){loaded=true;prevLevel=guildLevel(guildXP()).level}},
+    ()=>{$("#status").hidden=false;$("#status").textContent="Связь с базой гильдии потеряна. Обнови страницу."});
+  db.collection("adventurers").onSnapshot(s=>{advs=s.docs.map(d=>Object.assign({id:d.id},d.data()));renderAll()},()=>{});
+  db.collection("daily").orderBy("date","desc").limit(365).onSnapshot(s=>{daily=s.docs.map(d=>Object.assign({id:d.id},d.data()));dIn=true;renderAll();
+      if(!loaded&&qIn){loaded=true;prevLevel=guildLevel(guildXP()).level}},()=>{});
+  renderName();
+})();
+})();
+</script>
+</body>
+</html>
