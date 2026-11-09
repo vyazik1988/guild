@@ -407,6 +407,9 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
+.jr-edb{flex:0 0 auto;background:none;border:none;color:#9b8a6a;font-size:16px;line-height:1;padding:2px 4px;cursor:pointer}.jr-edb:hover{color:#1f5f9e}
+.jr-it.on{background:rgba(31,95,158,.05)}
+.jr-ed{display:flex;flex-direction:column;gap:6px;margin-top:8px}.jr-ed .row{display:flex;gap:10px}.jr-ed label.f{flex:0 1 110px}
 .ck-jd{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;vertical-align:middle}
 .ck-arr{width:26px;height:26px;padding:0;border:1px solid #b9a57c;border-radius:4px;background:#fffaf0;color:#1f5f9e;font-size:18px;line-height:1;font-weight:700;cursor:pointer}
 .ck-arr:hover:not(:disabled){border-color:#1f5f9e;background:#fff}.ck-arr:disabled{opacity:.35;cursor:default}
@@ -1598,7 +1601,7 @@ function refreshBook(){
 }
 function turnTo(sid,back){
   const s=stage;if(!s||!s._book||s._turning||s._book.sid===sid)return;const book=s.querySelector(".book");
-  s._jadd=null;const old=SPREADS[s._book.kind](s._book.sid);s._book.sid=sid;const nw=SPREADS[s._book.kind](sid);
+  s._jadd=null;s._jedit=null;const old=SPREADS[s._book.kind](s._book.sid);s._book.sid=sid;const nw=SPREADS[s._book.kind](sid);
   const nar=book.classList.contains("single"),pl=book.querySelector(".pl"),pr=book.querySelector(".pr");
   const leaf=document.createElement("div");leaf.className="leaf"+(back?" lb":"");s._turning=true;
   if(nar){leaf.innerHTML='<div class="cf pg lf">'+pageWrap(old.left+'<hr class="dash">'+old.right)+'</div>';pr.innerHTML=pageWrap(nw.left+'<hr class="dash">'+nw.right)}
@@ -1617,12 +1620,19 @@ function bindBook(book){
   const day=book.querySelector(".pr #bk-day,.pl #bk-day");if(day)day.onchange=()=>{const v=day.value;if(v&&v<=today()&&v>=GUILD_OPEN)turnTo(v,v<s._book.sid);else{toast(v&&v<GUILD_OPEN?"Гильдия открылась "+ru(GUILD_OPEN)+": более ранних записей нет.":"Записать можно только прошедший или сегодняшний день.");day.value=s._book.sid}};
   if(s._book.kind==="journal"){
     const date=s._book.sid,ents=()=>entriesOf(daily.find(d=>d.id===date)).slice();
-    const setMode=m=>{s._jadd=m||null;renderBookSpread(false);const f=book.querySelector("#jr-q,#jr-t");if(f)f.focus()};
+    const setMode=m=>{s._jadd=m||null;s._jedit=null;renderBookSpread(false);const f=book.querySelector("#jr-q,#jr-t");if(f)f.focus()};
     book.querySelectorAll("[data-jmode]").forEach(b=>b.onclick=()=>setMode(b.dataset.jmode));
     const ad=book.querySelector("#jr-add");if(ad)ad.onclick=()=>setMode("pick");
     const commit=async(list,msg)=>{const was=reports().some(d=>d.id===date);try{await saveEntries(date,list);s._jadd=null;if(document.activeElement)document.activeElement.blur();
-      toast(msg+(!was&&list.length?" +"+DAILY_XP+" XP":""));renderBookSpread(false)}catch(e){fail(e)}};
+      toast(msg+(!was&&list.length?" +"+DAILY_XP+" XP":""));const sc=[...book.querySelectorAll(".pgin")].map(x=>x.scrollTop);renderBookSpread(false);
+      const bk=stage&&stage.querySelector(".book");if(bk)[...bk.querySelectorAll(".pgin")].forEach((x,i)=>{if(sc[i])x.scrollTop=sc[i]})}catch(e){fail(e)}};
     book.querySelectorAll("[data-jdel]").forEach(b=>b.onclick=()=>{const l=ents();l.splice(+b.dataset.jdel,1);commit(l,"Действие убрано из журнала.")});
+    book.querySelectorAll("[data-jedit]").forEach(b=>b.onclick=()=>{s._jedit=+b.dataset.jedit;s._jadd=null;renderBookSpread(false);const f=book.querySelector("#je-h");if(f){f.focus();f.select()}});
+    const jno=book.querySelector("#je-no");if(jno)jno.onclick=()=>{s._jedit=null;renderBookSpread(false)};
+    const jok=book.querySelector("#je-ok");if(jok)jok.onclick=()=>{const k=+jok.dataset.k,l=ents();if(!l[k]){s._jedit=null;renderBookSpread(false);return}
+      const h=Math.max(0,parseInt(book.querySelector("#je-h").value,10)||0),m=Math.max(0,parseInt(book.querySelector("#je-m").value,10)||0),mn=h*60+m;
+      const en=Object.assign({},l[k]);if(mn)en.min=mn;else delete en.min;l[k]=en;s._jedit=null;commit(l,mn?"Время обновлено: "+fmtLong(mn).replace(/^~ /,"")+".":"Время у действия убрано.")};
+    ["#je-h","#je-m"].forEach(id=>{const i=book.querySelector(id);if(i)i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();jok&&jok.click()}else if(e.key==="Escape"){e.preventDefault();e.stopPropagation();jno&&jno.click()}}});
     const qs=book.querySelector("#jr-q"),is=book.querySelector("#jr-i"),iw=book.querySelector("#jr-iw"),ok=book.querySelector("#jr-ok");
     if(qs)qs.onchange=()=>{const q=quests.find(x=>x.id===qs.value);ok.disabled=!q;const lk=loggedKeys(),its=q?freeItems(q,lk):[],whole=q&&!lk.has(q.id+"|");
       iw.hidden=!its.length;is.innerHTML=(whole?'<option value="">Весь заказ целиком</option>':'')+its.map(o=>'<option value="'+o.k+'">'+(o.it.d?"✓ ":"")+esc(o.it.t)+'</option>').join("");if(is.onchange)is.onchange();else fillT(null)};
@@ -1680,10 +1690,13 @@ function questLoggable(q,lk){return !lk.has(q.id+"|")||freeItems(q,lk).length>0}
 function journalRight(sid,e,edit){
   const ents=entriesOf(e),st=stage&&stage._jadd||null;
   const li=(en,k)=>{
-    const q=en.t==="quest",sub=q?(en.item||en.cnt?"Заказ «"+esc(en.title)+"»":(en.done?"Заказ выполнен":"Работа над заказом"))+(en.min?" · "+fmtLong(en.min):""):(en.min?fmtLong(en.min):"");
+    const q=en.t==="quest",sub=q?(en.item||en.cnt?"Заказ «"+esc(en.title)+"»":(en.done?"Заказ выполнен":"Работа над заказом"))+(en.min?" · "+fmtLong(en.min).replace(/ /g,"\u00a0"):""):(en.min?fmtLong(en.min).replace(/ /g,"\u00a0"):"");
     const main=q?(en.cnt?"+"+en.cnt+" "+(en.unit||"")+(en.note?" · "+en.note:""):(en.item||en.title)):en.text;
-    return '<li class="jr-it"><span class="jr-tag '+(q?"jq":"jo")+'">'+(q?"Задание":"Другое")+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+'</div>'+
-      (edit?'<button class="jr-del" data-jdel="'+k+'" title="Убрать действие" aria-label="Убрать действие">×</button>':'')+'</li>';
+    const ed=edit&&stage&&stage._jedit===k,m=en.min||0;
+    return '<li class="jr-it'+(ed?' on':'')+'"><span class="jr-tag '+(q?"jq":"jo")+'">'+(q?"Задание":"Другое")+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+
+      (ed?'<div class="jr-ed"><span class="small muted">Примерное время работы</span><div class="row"><label class="f">Часы<input type="number" id="je-h" min="0" max="999" value="'+Math.floor(m/60)+'" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="je-m" min="0" max="59" step="5" value="'+(m%60)+'" inputmode="numeric"></label></div>'+
+        '<div class="bk-acts"><button class="btn pri" id="je-ok" data-k="'+k+'">Сохранить</button><button class="bk-link" id="je-no">Отмена</button></div></div>':'')+'</div>'+
+      (edit&&!ed?'<button class="jr-edb" data-jedit="'+k+'" title="Изменить время" aria-label="Изменить время">✎</button><button class="jr-del" data-jdel="'+k+'" title="Убрать действие" aria-label="Убрать действие">×</button>':'')+'</li>';
   };
   let h=ents.length?'<ol class="jr-list">'+ents.map(li).join("")+'</ol>':'<p class="muted jr-empty">'+(edit?"Пока нет ни одного действия за этот день.":"Менеджер ещё не записал результат за этот день.")+'</p>';
   if(!edit)return h;
