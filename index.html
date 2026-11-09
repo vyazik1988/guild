@@ -407,6 +407,9 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
+.ck-jd{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;vertical-align:middle}
+.ck-arr{width:26px;height:26px;padding:0;border:1px solid #b9a57c;border-radius:4px;background:#fffaf0;color:#1f5f9e;font-size:18px;line-height:1;font-weight:700;cursor:pointer}
+.ck-arr:hover:not(:disabled){border-color:#1f5f9e;background:#fff}.ck-arr:disabled{opacity:.35;cursor:default}
 .btn.ret,.sheet .btn.ret,.book .btn.ret{background:transparent;border-color:#a37a12;color:#8a6408}
 .btn.ret:hover,.sheet .btn.ret:hover,.book .btn.ret:hover{background:rgba(163,122,18,.14)}
 .pend-plate{align-self:flex-start;display:inline-block;border:2px solid #a37a12;color:#8a6408;background:rgba(214,170,60,.14);font-weight:700;font-size:13px;letter-spacing:.03em;padding:5px 10px;border-radius:3px;margin:6px 0}
@@ -1104,7 +1107,7 @@ function segBar(q){
 }
 function checkPanel(){
   const pc=pendingCheck;
-  if(pc.step==="ask")return '<div class="ckp" role="group" aria-label="Журнал смены"><span>Записать это в журнал смены за '+ru(pc.d)+'?</span>'+
+  if(pc.step==="ask")return '<div class="ckp" role="group" aria-label="Журнал смены"><span class="ck-jq">Записать это в журнал смены за <span class="ck-jd"><button class="ck-arr" id="ck-prev" type="button" aria-label="Предыдущий день"'+((pc.jd||pc.d)<=GUILD_OPEN?' disabled':'')+'>‹</button><b>'+ru(pc.jd||pc.d)+'</b><button class="ck-arr" id="ck-next" type="button" aria-label="Следующий день"'+((pc.jd||pc.d)>=today()?' disabled':'')+'>›</button></span>?</span>'+
     '<div class="row"><button class="btn pri sm" id="ck-yes" style="flex:0 0 auto">Да</button><button class="btn sm" id="ck-no" style="flex:0 0 auto">Нет</button><button class="btn ghost sm" id="ck-back" style="flex:0 0 auto">← Назад</button></div></div>';
   const cap=pc.type==="count"?"Записать прогресс: +"+pc.n+" "+esc(pc.unit||""):pc.type==="submit"?"Сдать заказ":"";
   return '<div class="ckp" role="group" aria-label="Выполнение">'+(cap?'<b>'+cap+'</b>':'')+'<div class="row">'+
@@ -1233,9 +1236,12 @@ function bindQuest(root,q){
   if(pc){
     const h=root.querySelector("#ck-h"),m=root.querySelector("#ck-m"),d=root.querySelector("#ck-d");
     if(h){h.oninput=()=>pc.h=h.value;m.oninput=()=>pc.m=m.value;d.onchange=()=>pc.d=d.value||today();
-      root.querySelector("#ck-ok").onclick=()=>{pc.d=d.value||today();pc.step="ask";refreshQuestViews()};
+      root.querySelector("#ck-ok").onclick=()=>{pc.d=d.value||today();pc.jd=pc.d;pc.step="ask";refreshQuestViews()};
       root.querySelector("#ck-cancel").onclick=()=>{pendingCheck=null;refreshQuestViews()}}
     const y=root.querySelector("#ck-yes");
+    const jp=root.querySelector("#ck-prev"),jn=root.querySelector("#ck-next");
+    const jmove=k=>{const v=shiftDay(pc.jd||pc.d,k);if(v<GUILD_OPEN||v>today())return;pc.jd=v;refreshQuestViews();const b=document.querySelector(k<0?"#ck-prev":"#ck-next");if(b&&!b.disabled)b.focus()};
+    if(jp)jp.onclick=()=>jmove(-1);if(jn)jn.onclick=()=>jmove(1);
     if(y){y.onclick=()=>confirmCheck(true);root.querySelector("#ck-no").onclick=()=>confirmCheck(false);root.querySelector("#ck-back").onclick=()=>{pc.step="form";refreshQuestViews()}}
   }
   root.querySelectorAll("[data-link]").forEach(inp=>inp.onchange=()=>{const cur=live(),l=(cur.links||[]).slice(),i=+inp.dataset.link,v=inp.value.trim();if(v)l[i]=v;else l.splice(i,1);patch(cur,{links:l},v?"Ссылка обновлена.":"Ссылка удалена.")});
@@ -2013,12 +2019,12 @@ async function removeAttachment(qid,f){
 async function confirmCheck(addReport){
   const pc=pendingCheck;if(!pc)return;pendingCheck=null;
   const cur=quests.find(x=>x.id===pc.qid);if(!cur){refreshQuestViews();return}
-  const mn=(parseInt(pc.h,10)||0)*60+(parseInt(pc.m,10)||0),dd=pc.d||today();
+  const mn=(parseInt(pc.h,10)||0)*60+(parseInt(pc.m,10)||0),dd=pc.d||today(),jd=pc.jd||dd;
   if(pc.type==="count"){
     const total=(+cur.current||0)+pc.n,h=pushHist(cur,"+"+pc.n,pc.note);const last=h[h.length-1];last.day=dd;if(mn)last.min=mn;
     refreshQuestViews();
     await patch(cur,{current:total,history:h},"Прогресс записан: "+total+" / "+cur.target+" "+(cur.unit||"")+".");
-    if(addReport){const en={t:"quest",qid:cur.id,i:"c"+Date.now(),title:cur.title,cnt:pc.n,unit:cur.unit||"",note:pc.note||""};if(mn)en.min=mn;await appendDaily(dd,en)}
+    if(addReport){const en={t:"quest",qid:cur.id,i:"c"+Date.now(),title:cur.title,cnt:pc.n,unit:cur.unit||"",note:pc.note||""};if(mn)en.min=mn;await appendDaily(jd,en)}
     return;
   }
   if(pc.type==="submit"){
@@ -2026,7 +2032,7 @@ async function confirmCheck(addReport){
     refreshQuestViews();
     await patch(cur,data,"Заказ сдан и ушёл в архив. Опыт начислится после подтверждения.");
     if(sheet&&sheet._id===cur.id)closeSheet(true);
-    if(addReport){const en={t:"quest",qid:cur.id,i:null,title:cur.title,done:true};if(mn)en.min=mn;await appendDaily(dd,en)}
+    if(addReport){const en={t:"quest",qid:cur.id,i:null,title:cur.title,done:true};if(mn)en.min=mn;await appendDaily(jd,en)}
     return;
   }
   const items=clean(cur.items||[]),it=items[pc.i];if(!it){refreshQuestViews();return}
@@ -2034,7 +2040,7 @@ async function confirmCheck(addReport){
   it.d=true;it.at=pc.d||today();if(min>0)it.min=min;else delete it.min;
   refreshQuestViews();
   await patch(cur,{items,history:pushHist(cur,"✓",it.t)},"Пункт выполнен: «"+it.t+"». +"+STEP_XP+" XP после подтверждения заказа");
-  if(addReport){const en={t:"quest",qid:cur.id,i:pc.i,title:cur.title,item:it.t};if(min)en.min=min;await appendDaily(it.at,en)}
+  if(addReport){const en={t:"quest",qid:cur.id,i:pc.i,title:cur.title,item:it.t};if(min)en.min=min;await appendDaily(jd,en)}
 }
 async function uncheckItem(q,i){const items=clean(q.items||[]);if(!items[i])return;items[i].d=false;delete items[i].at;delete items[i].min;await patch(q,{items},null)}
 async function appendDaily(date,line){
