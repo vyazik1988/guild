@@ -782,31 +782,36 @@ function wrapT(t,n,max){
 }
 /* rat hole in the wainscot, left of the adventurers' table */
 function noraG(n){
+  /* hole sits on the floor line at x≈41; everything near it is drawn at full size and scaled down around that point */
   const eyes=[[41,404],[50,413],[35,413],[47,401]].slice(0,Math.min(4,n)).map(([x,y],i)=>
     '<g class="ratEyes" style="animation-delay:'+(i*1.7).toFixed(1)+'s"><circle cx="'+x+'" cy="'+y+'" r="1.3" fill="#ffd36a"/><circle cx="'+(x+4.5)+'" cy="'+y+'" r="1.3" fill="#ffd36a"/></g>').join("");
   return '<g class="hot" tabindex="0" role="button" data-open="nora" aria-label="Нора: крыс на заданиях '+n+'">'+
     '<g class="olt">'+
       /* note pinned above the hole */
-      '<g data-noranote="1" aria-label="Листок норы" transform="rotate(-7 39 349)">'+
+      '<g data-noranote="1" aria-label="Листок норы" transform="translate(41 386) scale(.58) rotate(-7) translate(-39.5 -350)">'+
         '<polygon points="20,333 44,332 47,335 58,333 59,356 56,359 59,363 54,367 47,365 40,368 33,365 26,368 21,365" fill="#d9cba8"/>'+
         '<ellipse cx="53" cy="361" rx="5" ry="3.5" fill="#6b5030" opacity=".3"/><circle cx="24" cy="338" r="2" fill="#5a4024" opacity=".3"/>'+
         '<text x="39.5" y="346" text-anchor="middle" font-family="Russo One" font-size="7.5" fill="#3a2a1a">НОРА</text>'+
         '<text x="39.5" y="356" text-anchor="middle" font-family="Exo 2" font-size="5" fill="#5b4a33">на заданиях: '+n+'</text>'+
         '<circle cx="39.5" cy="335" r="1.8" fill="#7a6a5a"/></g>'+
-      /* the hole: splintered frame and darkness */
-      '<path d="M18 432 L18 410 Q19 389 41 387 Q64 389 65 410 L65 432 Z" fill="#3a2414"/>'+
-      '<path d="M22 432 L22 411 Q23 393 41 392 Q60 393 61 411 L61 432 Z" fill="#050302"/>'+
-      '<path d="M22 411 Q23 393 41 392 Q60 393 61 411" fill="none" stroke="#1a0f08" stroke-width="2"/>'+
-      '<path d="M18 404l-4 -3M30 389l-2 -5M55 390l3 -4M65 402l4 -2" stroke="#4a311c" stroke-width="1.6" stroke-linecap="round"/>'+
-    '</g>'+eyes+
-    /* tail sticking out on the right */
-    '<path d="M58 430 C68 431 72 438 84 436 S98 441 104 437" fill="none" stroke="#c49a92" stroke-width="2.4" stroke-linecap="round"/>'+
-    /* the rat peeking out on the left */
-    '<g class="ratHead"><ellipse cx="26" cy="424" rx="9" ry="6.5" fill="#7f7b72"/><path d="M19 421 Q12 424 15 428 Q19 429 22 427Z" fill="#8d8980"/>'+
-      '<circle cx="31" cy="417" r="4" fill="#7f7b72"/><circle cx="31" cy="417" r="2.3" fill="#d79a9a"/>'+
-      '<circle cx="22.5" cy="421.5" r="1.5" fill="#0d0805"/><circle cx="22" cy="421" r=".5" fill="#fff"/>'+
-      '<circle cx="14.6" cy="426" r="1.4" fill="#e3a0a6"/>'+
-      '<path d="M16 425l-7 -2M16 427l-7 1M17 428l-6 3" stroke="#d9d4c8" stroke-width=".5" opacity=".8"/></g>'+
+      '<g transform="translate(41.5 432) scale(.62) translate(-41.5 -432)">'+
+        '<path d="M18 432 L18 410 Q19 389 41 387 Q64 389 65 410 L65 432 Z" fill="#3a2414"/>'+
+        '<path d="M22 432 L22 411 Q23 393 41 392 Q60 393 61 411 L61 432 Z" fill="#050302"/>'+
+        '<path d="M22 411 Q23 393 41 392 Q60 393 61 411" fill="none" stroke="#1a0f08" stroke-width="2"/>'+
+        '<path d="M18 404l-4 -3M30 389l-2 -5M55 390l3 -4M65 402l4 -2" stroke="#4a311c" stroke-width="1.6" stroke-linecap="round"/>'+
+      '</g>'+
+    '</g>'+
+    '<g transform="translate(41.5 432) scale(.62) translate(-41.5 -432)">'+eyes+
+      /* short tail sticking out on the right */
+      '<path d="M58 430 C64 431 67 436 73 435 S79 436 82 433" fill="none" stroke="#c49a92" stroke-width="2.4" stroke-linecap="round"/>'+
+      /* rat peeking out on the left, looking right */
+      '<g class="ratHead"><g transform="translate(58 0) scale(-1 1)">'+
+        '<ellipse cx="26" cy="424" rx="9" ry="6.5" fill="#7f7b72"/><path d="M19 421 Q12 424 15 428 Q19 429 22 427Z" fill="#8d8980"/>'+
+        '<circle cx="31" cy="417" r="4" fill="#7f7b72"/><circle cx="31" cy="417" r="2.3" fill="#d79a9a"/>'+
+        '<circle cx="22.5" cy="421.5" r="1.5" fill="#0d0805"/><circle cx="22" cy="421" r=".5" fill="#fff"/>'+
+        '<circle cx="14.6" cy="426" r="1.4" fill="#e3a0a6"/>'+
+        '<path d="M16 425l-7 -2M16 427l-7 1M17 428l-6 3" stroke="#d9d4c8" stroke-width=".5" opacity=".8"/></g></g>'+
+    '</g>'+
   '</g>';
 }
 function dirtySvg(x,y){
@@ -1427,8 +1432,8 @@ addEventListener("resize",()=>{
 });
 
 /* ---------- scenes: adventurers' table, shift journal, guild books ---------- */
-const SREG={nora:{x:0,y:322,w:212,h:116},table:{x:130,y:288,w:340,h:184},journal:{x:466,y:468,w:268,h:112},status:{x:132,y:566,w:166,h:108},archive:{x:752,y:566,w:166,h:108}};
-const SOBJ={nora:{x:18,y:330,w:50,h:102},table:{x:160,y:366,w:280,h:44},journal:{x:520,y:514,w:160,h:34},status:{x:170,y:576,w:64,h:88},archive:{x:790,y:576,w:64,h:88}};
+const SREG={nora:{x:10,y:356,w:136,h:84},table:{x:130,y:288,w:340,h:184},journal:{x:466,y:468,w:268,h:112},status:{x:132,y:566,w:166,h:108},archive:{x:752,y:566,w:166,h:108}};
+const SOBJ={nora:{x:22,y:372,w:40,h:60},table:{x:160,y:366,w:280,h:44},journal:{x:520,y:514,w:160,h:34},status:{x:170,y:576,w:64,h:88},archive:{x:790,y:576,w:64,h:88}};
 const SNAME={nora:"Нора",table:"Стол авантюристов",journal:"Журнал смены",status:"Книга «Статус гильдии»",archive:"Книга «Архив»"};
 const GUILD_OPEN="2026-10-26",GUILD_CLOSE="2027-02-12";
 const WD_FULL=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
@@ -1902,7 +1907,7 @@ function closeSheet(instant){
   if(!sheet)return;const w=sheet;sheet=null;pendingCheck=null;
   const paper=w.querySelector(".sheet"),back=w.querySelector(".sheetback");
   const src=srcFor(w);if(src&&!instant)src.style.visibility="hidden";
-  const done=()=>{w.remove();renderBoardPanel();fillTable();const f=srcFor(w);if(f)try{f.focus({preventScroll:true})}catch(e){}};
+  const done=()=>{w.remove();renderBoardPanel();fillTable();const f=srcFor(w);if(f){if(w._kind==="nora"){f.style.visibility="";const bb=document.querySelector(".stage [data-bp-back]");if(bb)try{bb.focus({preventScroll:true})}catch(e){}}else try{f.focus({preventScroll:true})}catch(e){}}};
   if(instant){done();return}
   paper.scrollTop=0;paper.classList.add("flying");
   const to=paperFlight(src,paper.getBoundingClientRect());
