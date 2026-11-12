@@ -407,6 +407,19 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
+.sheet.dirty{background-image:radial-gradient(ellipse 110px 70px at 97% 3%,rgba(120,88,46,.26),transparent 70%),radial-gradient(ellipse 150px 80px at 2% 98%,rgba(96,68,36,.24),transparent 70%),radial-gradient(circle 18px at 95% 55%,rgba(96,68,36,.22),transparent 80%),radial-gradient(circle 11px at 3% 32%,rgba(96,68,36,.26),transparent 80%),radial-gradient(ellipse 40px 12px at 60% 99%,rgba(80,56,30,.2),transparent 80%);
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 26px),calc(100% - 8px) calc(100% - 18px),calc(100% - 2px) calc(100% - 10px),calc(100% - 14px) 100%,62% calc(100% - 4px),40% 100%,18% calc(100% - 5px),0 100%)}
+.nora-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.nora-stats div{border:1px solid #cdbb93;border-radius:4px;padding:8px 10px;background:rgba(255,250,240,.45)}
+.nora-stats small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a40}.nora-stats b{font-family:var(--f-num);font-size:20px;color:#2b2116}
+.nora-list{list-style:none;margin:0;padding:0}.nora-list li{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px dotted #b9a57c}
+.nora-list b{flex:0 0 auto;color:#5f5a4c}.nora-list span{flex:1;min-width:0;overflow-wrap:anywhere}.nora-list i{font-style:normal;font-size:12px;color:#6b5a40}
+.rk-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.rk-row b{font-family:var(--f-num);margin-left:4px}
+@media (max-width:560px){.nora-stats{grid-template-columns:repeat(2,1fr)}}
+#hall .ratEyes{animation:ratBlink 5s infinite}@keyframes ratBlink{0%,92%,100%{opacity:1}94%,97%{opacity:0}}
+#hall .ratHead{animation:ratPeek 6s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
+@keyframes ratPeek{0%,70%,100%{transform:translateX(0)}78%,86%{transform:translateX(3px)}}
+@media (prefers-reduced-motion:reduce){#hall .ratEyes,#hall .ratHead{animation:none}}
 .jr-edb{flex:0 0 auto;background:none;border:none;color:#9b8a6a;font-size:16px;line-height:1;padding:2px 4px;cursor:pointer}.jr-edb:hover{color:#1f5f9e}
 .jr-it.on{background:rgba(31,95,158,.05)}
 .jr-ed{display:flex;flex-direction:column;gap:6px;margin-top:8px}.jr-ed .row{display:flex;gap:10px}.jr-ed label.f{flex:0 1 110px}
@@ -663,8 +676,20 @@ function toast(text,kind){
 
 /* ---------- derived numbers ---------- */
 const advById=id=>advs.find(a=>a.id===id);
-const advColor=a=>a?(CLASSES[a.cls]?.c||a.color||"#9aa8bf"):"#9aa8bf";
-const advCls=a=>CLASSES[a?.cls]||NO_CLASS;
+const RAT_C="#9a9384",RAT_CLASS={n:"Нора",area:"Задания, до которых никому нет дела",c:RAT_C};
+const advColor=a=>a?(a.cls==="rat"?RAT_C:CLASSES[a.cls]?.c||a.color||"#9aa8bf"):"#9aa8bf";
+const advCls=a=>a?.cls==="rat"?RAT_CLASS:CLASSES[a?.cls]||NO_CLASS;
+/* quests given to the rats: q.adv==="rat", q.rat = the rat's name */
+const RAT_NAMES=["Ахиллес","Аякс","Арес","Аризона","Эш","Аспен","Огги","Большой Сэл","Кусачий Майк","Блейн","Бобби","Бобби Детройт","Бун","Брюс Дважды","Калхун","Каллиопа","Карл","Карл Второй","Карлито","Кэш","Кэти-через-К","Шарлотта","Нахалка","Честер","Пухляш","Чак","Зира","Кекс","Дейн","Данте","Дакс","Дениза","Диллон","Донна","Донован","Голландец","Эдди","Илай","Эрика","Толстомордый","Фрэнки","Фредди","Джин","Джордж","Гомес","Мармеладка","Гектор","Хелен","Гера","Ингрид","Джеки","Жак","Джейк","Хименес","Джейн","Жасмин","Джаспер","Джесси","Джимми","Джимми Ти","Младший","Кэти-через-Кэ","Келли","Кингстон","Безделушка","Кулас","Леви","Лексингтон","Лилия","Малыш Сэл","Лив","Лу","Луи","Луиза","Манго","Маркус","Марго","Мэтт","Мигель","Милдред","Мокко","Монти","Начо","Ник","Мускат","Оди","Орегано","Паломо","Пол","Арахис","Фиби","Филипп","Горошек","Картошка","Просекко","Тыковка","Бешеный Ронни","Радуга","Реджано","Реджинальд","Рино","Родриго","Рокко","Сэм","Санчес","Сара","Курносая Молли","Газировка","Колючий Майк","Стюарт","Мак-Выкидуха","Ти-Джей","Томазо","Грег Два Башмака","Валери","Винс","Вино","Уолли","Винтик","Зеро"];
+const isRat=q=>!!q&&q.adv==="rat";
+const advLabel=a=>a.cls==="rat"?a.name:a.name+" · "+advCls(a).n;
+const qAdv=q=>isRat(q)?{id:"rat",cls:"rat",name:"Крыса "+(q.rat||"без имени"),color:RAT_C}:advById(q&&q.adv);
+function pickRatName(q){
+  if(q&&q.rat)return q.rat;
+  const busy=new Set(quests.filter(x=>isRat(x)&&x.status==="active").map(x=>x.rat));
+  const free=RAT_NAMES.filter(n=>!busy.has(n)),pool=free.length?free:RAT_NAMES;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 function progressOf(q){
   if(q.kind==="counter"){const t=+q.target||0;return t?Math.min(1,(+q.current||0)/t):0}
   if(q.kind==="checklist"){const it=q.items||[];return it.length?it.filter(i=>i.d).length/it.length:0}
@@ -727,7 +752,7 @@ function rightText(q){
   return q.deadline?("до "+ruShort(q.deadline)):"";
 }
 function qRow(q){
-  const p=progressOf(q),over=isOver(q),a=advById(q.adv);
+  const p=progressOf(q),over=isOver(q),a=qAdv(q);
   return '<button class="q" data-q="'+esc(q.id)+'"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span>'+
     '<span class="q-t"><b>'+esc(q.title)+'</b><span>'+STATUS[q.status]+(a?' · <span style="color:'+advColor(a)+'">'+esc(a.name)+'</span>':"")+(over?' · <span class="over">просрочен</span>':(q.deadline?" · до "+ru(q.deadline):""))+'</span>'+
     (q.kind!=="simple"?'<span class="mini"><i style="width:'+(p*100).toFixed(0)+'%"></i></span>':"")+'</span>'+
@@ -755,8 +780,45 @@ function wrapT(t,n,max){
   if(used<w.length&&out.length){const l=out[out.length-1];out[out.length-1]=(l.length>n-1?l.slice(0,n-1):l).replace(/…$/,"")+"…"}
   return out.slice(0,max);
 }
+/* rat hole in the wainscot, left of the adventurers' table */
+function noraG(n){
+  const eyes=[[41,404],[50,413],[35,413],[47,401]].slice(0,Math.min(4,n)).map(([x,y],i)=>
+    '<g class="ratEyes" style="animation-delay:'+(i*1.7).toFixed(1)+'s"><circle cx="'+x+'" cy="'+y+'" r="1.3" fill="#ffd36a"/><circle cx="'+(x+4.5)+'" cy="'+y+'" r="1.3" fill="#ffd36a"/></g>').join("");
+  return '<g class="hot" tabindex="0" role="button" data-open="nora" aria-label="Нора: крыс на заданиях '+n+'">'+
+    '<g class="olt">'+
+      /* note pinned above the hole */
+      '<g data-noranote="1" aria-label="Листок норы" transform="rotate(-7 39 349)">'+
+        '<polygon points="20,333 44,332 47,335 58,333 59,356 56,359 59,363 54,367 47,365 40,368 33,365 26,368 21,365" fill="#d9cba8"/>'+
+        '<ellipse cx="53" cy="361" rx="5" ry="3.5" fill="#6b5030" opacity=".3"/><circle cx="24" cy="338" r="2" fill="#5a4024" opacity=".3"/>'+
+        '<text x="39.5" y="346" text-anchor="middle" font-family="Russo One" font-size="7.5" fill="#3a2a1a">НОРА</text>'+
+        '<text x="39.5" y="356" text-anchor="middle" font-family="Exo 2" font-size="5" fill="#5b4a33">на заданиях: '+n+'</text>'+
+        '<circle cx="39.5" cy="335" r="1.8" fill="#7a6a5a"/></g>'+
+      /* the hole: splintered frame and darkness */
+      '<path d="M18 432 L18 410 Q19 389 41 387 Q64 389 65 410 L65 432 Z" fill="#3a2414"/>'+
+      '<path d="M22 432 L22 411 Q23 393 41 392 Q60 393 61 411 L61 432 Z" fill="#050302"/>'+
+      '<path d="M22 411 Q23 393 41 392 Q60 393 61 411" fill="none" stroke="#1a0f08" stroke-width="2"/>'+
+      '<path d="M18 404l-4 -3M30 389l-2 -5M55 390l3 -4M65 402l4 -2" stroke="#4a311c" stroke-width="1.6" stroke-linecap="round"/>'+
+    '</g>'+eyes+
+    /* tail sticking out on the right */
+    '<path d="M58 430 C68 431 72 438 84 436 S98 441 104 437" fill="none" stroke="#c49a92" stroke-width="2.4" stroke-linecap="round"/>'+
+    /* the rat peeking out on the left */
+    '<g class="ratHead"><ellipse cx="26" cy="424" rx="9" ry="6.5" fill="#7f7b72"/><path d="M19 421 Q12 424 15 428 Q19 429 22 427Z" fill="#8d8980"/>'+
+      '<circle cx="31" cy="417" r="4" fill="#7f7b72"/><circle cx="31" cy="417" r="2.3" fill="#d79a9a"/>'+
+      '<circle cx="22.5" cy="421.5" r="1.5" fill="#0d0805"/><circle cx="22" cy="421" r=".5" fill="#fff"/>'+
+      '<circle cx="14.6" cy="426" r="1.4" fill="#e3a0a6"/>'+
+      '<path d="M16 425l-7 -2M16 427l-7 1M17 428l-6 3" stroke="#d9d4c8" stroke-width=".5" opacity=".8"/></g>'+
+  '</g>';
+}
+function dirtySvg(x,y){
+  /* torn, stained paper for rat quests: dirt stays at the edges so the text stays readable */
+  const P=(dx,dy)=>(x+dx)+","+(y+dy);
+  return '<polygon class="pp" points="'+[P(0,0),P(22,0),P(25,2),P(28,0),P(60,0),P(60,49),P(57,53),P(60,57),P(58,62),P(60,66),P(55,72),P(50,69),P(45,72),P(38,70),P(31,72),P(24,70),P(16,72),P(9,69),P(3,72),P(0,70)].join(" ")+'" fill="#e2d6b8"/>'+
+    '<ellipse cx="'+(x+52)+'" cy="'+(y+10)+'" rx="7" ry="5" fill="#8a6a3a" opacity=".22"/><ellipse cx="'+(x+7)+'" cy="'+(y+63)+'" rx="8" ry="5" fill="#6b5030" opacity=".2"/>'+
+    '<circle cx="'+(x+55)+'" cy="'+(y+40)+'" r="2.4" fill="#5a4024" opacity=".22"/><circle cx="'+(x+4)+'" cy="'+(y+28)+'" r="1.6" fill="#5a4024" opacity=".25"/>'+
+    '<path d="M'+(x+46)+' '+(y+66)+'q3 -3 6 0" fill="none" stroke="#7a5f3a" stroke-width=".6" opacity=".5"/>';
+}
 function paperHi(q,x,y){
-  const a=advById(q.adv),p=progressOf(q),over=isOver(q),c=PAPER_RC[q.rank],t=wrapT(q.title,15,2);
+  const a=qAdv(q),p=progressOf(q),over=isOver(q),c=PAPER_RC[q.rank],t=wrapT(q.title,15,2);
   const tx=(xx,yy,size,fill,body,extra)=>'<text x="'+xx+'" y="'+yy+'" font-family="Exo 2" font-size="'+size+'" fill="'+fill+'"'+(extra||"")+'>'+body+'</text>';
   let h='<rect x="'+(x+5)+'" y="'+(y+7)+'" width="9" height="9" fill="none" stroke="'+c+'" stroke-width=".8"/>'+
     '<text x="'+(x+9.5)+'" y="'+(y+14)+'" text-anchor="middle" font-family="Russo One" font-size="6.5" fill="'+c+'">'+q.rank+'</text>'+
@@ -767,7 +829,7 @@ function paperHi(q,x,y){
     h+='<rect x="'+(x+5)+'" y="'+(yy-3)+'" width="50" height="2.4" fill="#cdbf9f"/><rect x="'+(x+5)+'" y="'+(yy-3)+'" width="'+(50*p).toFixed(1)+'" height="2.4" fill="#2a6fb0"/>';
     yy+=4;h+=tx(x+5,yy,4.3,"#5b4a33",rightText(q)+" · "+Math.round(p*100)+"%");yy+=7;
   }
-  h+=a?'<circle cx="'+(x+6.6)+'" cy="'+(yy-1.5)+'" r="1.6" fill="'+advColor(a)+'"/>'+tx(x+9.8,yy,4.3,"#2b2116",esc(a.name)+" · "+esc(advCls(a).n)):tx(x+5,yy,4.3,"#5b4a33","Без исполнителя");
+  h+=a?'<circle cx="'+(x+6.6)+'" cy="'+(yy-1.5)+'" r="1.6" fill="'+advColor(a)+'"/>'+tx(x+9.8,yy,4.3,"#2b2116",esc(advLabel(a))):tx(x+5,yy,4.3,"#5b4a33","Без исполнителя");
   yy+=7;h+=tx(x+5,yy,4.3,over?"#b3261e":"#5b4a33",q.deadline?(over?"Просрочен ":"Срок ")+ru(q.deadline):"Без срока",over?' font-weight="700"':"");
   if(q.status==="review")h+='<g transform="rotate(-10 '+(x+44)+' '+(y+65)+')"><rect x="'+(x+30)+'" y="'+(y+61)+'" width="28" height="7.5" fill="none" stroke="#c0392b" stroke-width=".7"/><text x="'+(x+44)+'" y="'+(y+66.6)+'" text-anchor="middle" font-family="Russo One" font-size="3.8" fill="#c0392b">ПРОВЕРКА</text></g>';
   return h;
@@ -866,8 +928,8 @@ function drawHall(){
   const pc={E:"#6b7a92",D:"#2f8a57",C:"#2a6fb0",B:"#6c45c9",A:"#c25e1c",S:"#a87d10"};
   let seed=11;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
   const OL='stroke="#1d1209" stroke-width="1.5"';
-  const paper=(q,x,y,i,right)=>{const a=advById(q.adv),rot=((i*7)%9-4);
-    return '<g data-paper="'+esc(q.id)+'" data-rot="'+rot+'" aria-label="Заказ: '+esc(q.title)+'" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')"><rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" fill="#e9dfc6"/>'+
+  const paper=(q,x,y,i,right)=>{const a=qAdv(q),rot=((i*7)%9-4);
+    return '<g data-paper="'+esc(q.id)+'" data-rot="'+rot+'" aria-label="Заказ: '+esc(q.title)+'" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')">'+(isRat(q)?dirtySvg(x,y):'<rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" fill="#e9dfc6"/>')+
     '<g class="lo"><rect x="'+(x+8)+'" y="'+(y+30)+'" width="44" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+38)+'" width="34" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+46)+'" width="40" height="3" fill="#8a7754"/>'+
     '<text x="'+(x+14)+'" y="'+(y+24)+'" font-family="Russo One" font-size="16" fill="'+pc[q.rank]+'">'+q.rank+'</text>'+
     (right&&q.kind!=="simple"?'<rect x="'+(x+8)+'" y="'+(y+58)+'" width="44" height="5" fill="#cdbf9f"/><rect x="'+(x+8)+'" y="'+(y+58)+'" width="'+(44*progressOf(q)).toFixed(0)+'" height="5" fill="#2a6fb0"/>':"")+
@@ -1075,6 +1137,7 @@ function drawHall(){
   '<circle cx="740" cy="40" r="2" fill="#8a6a2a"/><circle cx="940" cy="40" r="2" fill="#8a6a2a"/>'+
   '<text x="840" y="47" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#1a110b">ДОСКА ЗАКАЗОВ</text>'+
   '<text x="840" y="46" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#e6c88a">ДОСКА ЗАКАЗОВ</text></g></g>'+
+  noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+
   // adventurers' tables (hot)
   '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Столы авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
   corner+'</g>'+
@@ -1082,19 +1145,19 @@ function drawHall(){
 }
 
 /* ---------- Modals ---------- */
-function openModal(kind,arg){if(kind==="board"){openBoard();return}if(kind==="new"){openBoard(openNewSheet);return}if(kind==="advs"){openScene("table");return}if(kind==="adv"){openScene("table",()=>openSheet(arg,null,"view","adv"));return}if(kind==="hire"){openScene("table",()=>openSheet(null,null,"hire","adv"));return}if(kind==="guild"){openScene("status");return}if(kind==="archive"){openScene("archive");return}if(kind==="ledger"){openScene("journal");return}modalState={kind,arg};renderModal();const m=$("#modal");m.hidden=false;setTimeout(()=>{const f=m.querySelector("textarea,input,.tab,button.paper,button.adv,button.btn");f&&f.focus()},30)}
+function openModal(kind,arg){if(kind==="board"){openBoard();return}if(kind==="nora"){openScene("nora");return}if(kind==="new"){openBoard(openNewSheet);return}if(kind==="advs"){openScene("table");return}if(kind==="adv"){openScene("table",()=>openSheet(arg,null,"view","adv"));return}if(kind==="hire"){openScene("table",()=>openSheet(null,null,"hire","adv"));return}if(kind==="guild"){openScene("status");return}if(kind==="archive"){openScene("archive");return}if(kind==="ledger"){openScene("journal");return}modalState={kind,arg};renderModal();const m=$("#modal");m.hidden=false;setTimeout(()=>{const f=m.querySelector("textarea,input,.tab,button.paper,button.adv,button.btn");f&&f.focus()},30)}
 function closeModal(){modalState=null;$("#modal").hidden=true;$("#modal").innerHTML=""}
 function shell(tag,title,body){return '<section class="win" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="win-h"><span class="tag">'+tag+'</span><h2>'+esc(title)+'</h2><button class="x" data-close aria-label="Закрыть">×</button></div><div class="win-b">'+body+'</div></section>'}
 const PAPER_RC={E:"#5d6b80",D:"#2f7a4f",C:"#1f5f9e",B:"#6c45c9",A:"#b5541a",S:"#8a6410"};
 function bigPaper(q,i){
-  const a=advById(q.adv),p=progressOf(q),over=isOver(q),rot=(((i*37)%7)-3)*0.6;
+  const a=qAdv(q),p=progressOf(q),over=isOver(q),rot=(((i*37)%7)-3)*0.6;
   let prog="";
   if(q.kind!=="simple")prog='<span class="pbar"><i style="width:'+(p*100).toFixed(0)+'%"></i></span><span class="meta">'+(q.kind==="counter"?"Прогресс: ":"Пункты: ")+rightText(q)+' · '+Math.round(p*100)+'%</span>';
   return '<button class="paper" data-paper="'+esc(q.id)+'" style="--pin:'+(a?advColor(a):"#c0392b")+';--rot:'+rot.toFixed(1)+'deg" aria-label="Заказ: '+esc(q.title)+'">'+
     (q.status==="review"?'<span class="stamp">ЖДЁТ ПОДТВЕРЖДЕНИЯ</span>':"")+
     '<span class="meta"><span class="prk" style="color:'+PAPER_RC[q.rank]+'">'+esc(q.rank)+'</span><span>'+KIND[q.kind]+' · '+(RANK_XP[q.rank]||10)+' XP</span></span>'+
     '<b>'+esc(q.title)+'</b>'+(q.desc?'<span class="desc2">'+esc(q.desc)+'</span>':"")+prog+
-    '<span class="meta">'+(a?'<span class="dot" style="background:'+advColor(a)+'"></span>'+esc(a.name)+' · '+esc(advCls(a).n):'Исполнитель не назначен')+'</span>'+
+    '<span class="meta">'+(a?'<span class="dot" style="background:'+advColor(a)+'"></span>'+esc(advLabel(a)):'Исполнитель не назначен')+'</span>'+
     '<span class="meta">'+(q.deadline?'<span class="'+(over?"late":"")+'">'+(over?"Просрочен: ":"Срок: ")+ru(q.deadline)+'</span>':"Без срока")+'</span></button>';
 }
 const fmtMin=m=>{m=+m||0;if(!m)return"";const h=Math.floor(m/60),r=m%60;return(h?h+" ч":"")+(h&&r?" ":"")+(r?r+" мин":"")};
@@ -1121,11 +1184,11 @@ function checkPanel(){
     '<div class="row"><button class="btn pri sm" id="ck-ok" style="flex:0 0 auto">Готово</button><button class="btn ghost sm" id="ck-cancel" style="flex:0 0 auto">Отмена</button></div></div>';
 }
 function questBody(q,sheetMode){
-  const p=progressOf(q),over=isOver(q),a=advById(q.adv),editable=canWrite&&q.status==="active",open=canWrite&&q.status!=="done";
+  const p=progressOf(q),over=isOver(q),a=qAdv(q),editable=canWrite&&q.status==="active",open=canWrite&&q.status!=="done";
   let body='<div class="state">'+(sheetMode?'':'<span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><span class="pill info">'+STATUS[q.status]+'</span>')+(over?'<span class="pill bad">ПРОСРОЧЕН</span>':"")+'<span class="small muted">Ранг '+esc(q.rank)+' · '+KIND[q.kind]+' · награда '+(RANK_XP[q.rank]||10)+' XP</span></div>';
   if(q.desc)body+='<p class="desc">'+esc(q.desc)+'</p>';
   const cell=(k,v,cls)=>'<div><small>'+k+'</small><b'+(cls?' class="'+cls+'"':'')+'>'+v+'</b></div>';
-  body+='<div class="kv kv1"><div><small>Исполнитель</small><b style="color:'+(a?advColor(a):"var(--muted)")+'">'+(a?esc(a.name)+" · "+esc(advCls(a).n):"не назначен")+'</b></div>'+
+  body+='<div class="kv kv1"><div><small>Исполнитель</small><b style="color:'+(a?advColor(a):"var(--muted)")+'">'+(a?esc(advLabel(a)):"не назначен")+'</b></div>'+
     cell("Срок",q.deadline?ru(q.deadline):"не задан",over?"over":"")+
     cell("Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-")+
     cell("Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"не начат")+
@@ -1142,7 +1205,8 @@ function questBody(q,sheetMode){
     return '<label class="check'+(it.d?" done":"")+'"><input type="checkbox" data-item="'+i+'"'+(it.d||pend?" checked":"")+(editable?"":" disabled")+'><span>'+esc(it.t)+'</span>'+(meta?'<em class="ckmeta">'+meta+'</em>':'')+'</label>'+(pend?checkPanel():'');
   }).join("")+'</div>';
   if(canWrite&&(q.status==="board"||q.status==="active")){
-    const advOpts=advs.map(x=>{const l=activeOf(x).filter(z=>z.id!==q.id).length;return '<option value="'+esc(x.id)+'"'+(x.id===q.adv?" selected":"")+(l>=MAX_ACTIVE?" disabled":"")+'>'+esc(x.name)+' · '+esc(advCls(x).n)+' · '+(x.id===q.adv&&q.status!=="board"?"выполняет это задание":l?"на задании":"свободен")+'</option>'}).join("");
+    const advOpts=advs.map(x=>{const l=activeOf(x).filter(z=>z.id!==q.id).length;return '<option value="'+esc(x.id)+'"'+(x.id===q.adv?" selected":"")+(l>=MAX_ACTIVE?" disabled":"")+'>'+esc(x.name)+' · '+esc(advCls(x).n)+' · '+(x.id===q.adv&&q.status!=="board"?"выполняет это задание":l?"на задании":"свободен")+'</option>'}).join("")+
+      '<option value="rat"'+(isRat(q)?" selected":"")+'>'+(isRat(q)&&q.status!=="board"?"Крыса "+esc(q.rat||"")+" · выполняет это задание":"Отдать крысам")+'</option>';
     body+=!advs.length?'<div class="empty">В гильдии нет авантюристов. Найми их за столами.</div>':
       q.status==="board"?'<div class="row"><label class="f" style="flex:1 1 220px">Кого отправить<select id="a-pick">'+advOpts+'</select></label><button class="btn pri" data-act="take" style="flex:0 0 auto">Выдать заказ</button></div>':
       '<div class="row"><label class="f" style="flex:1 1 220px">Исполнитель<select id="a-pick">'+advOpts+'</select></label><button class="btn" data-act="reassign" style="flex:0 0 auto">Переназначить</button></div>';
@@ -1363,9 +1427,9 @@ addEventListener("resize",()=>{
 });
 
 /* ---------- scenes: adventurers' table, shift journal, guild books ---------- */
-const SREG={table:{x:130,y:288,w:340,h:184},journal:{x:466,y:468,w:268,h:112},status:{x:132,y:566,w:166,h:108},archive:{x:752,y:566,w:166,h:108}};
-const SOBJ={table:{x:160,y:366,w:280,h:44},journal:{x:520,y:514,w:160,h:34},status:{x:170,y:576,w:64,h:88},archive:{x:790,y:576,w:64,h:88}};
-const SNAME={table:"Стол авантюристов",journal:"Журнал смены",status:"Книга «Статус гильдии»",archive:"Книга «Архив»"};
+const SREG={nora:{x:0,y:322,w:212,h:116},table:{x:130,y:288,w:340,h:184},journal:{x:466,y:468,w:268,h:112},status:{x:132,y:566,w:166,h:108},archive:{x:752,y:566,w:166,h:108}};
+const SOBJ={nora:{x:18,y:330,w:50,h:102},table:{x:160,y:366,w:280,h:44},journal:{x:520,y:514,w:160,h:34},status:{x:170,y:576,w:64,h:88},archive:{x:790,y:576,w:64,h:88}};
+const SNAME={nora:"Нора",table:"Стол авантюристов",journal:"Журнал смены",status:"Книга «Статус гильдии»",archive:"Книга «Архив»"};
 const GUILD_OPEN="2026-10-26",GUILD_CLOSE="2027-02-12";
 const WD_FULL=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
 const shiftDay=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return ymd(d)};
@@ -1424,8 +1488,15 @@ function closeBookAnim(s,book,closedT,openT){
   else{cb.style.visibility="visible";cf.style.visibility="hidden";flip=flipEl(cover,-180,0,cb,cf,D(260))}
   return Promise.all([slide.finished,flip]).then(()=>book.classList.add("shut"));
 }
+function bindNoraCam(s){
+  const n=s.querySelector(".cam [data-noranote]");if(!n)return;
+  n.setAttribute("tabindex","0");n.setAttribute("role","button");n.style.cursor="pointer";
+  n.onclick=e=>{e.stopPropagation();openSheet(null,n,"view","nora")};
+  n.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet(null,n,"view","nora")}};
+}
 function sceneIn(s){
   const kind=s._kind,ov=s.querySelector(".ovl"),veil=s.querySelector(".veil");
+  if(kind==="nora"){ov.removeAttribute("role");ov.removeAttribute("aria-modal");bindNoraCam(s);return Promise.resolve()}
   if(BOOKK(kind)){
     const book=ov.querySelector(".book"),closedT="translate("+(-s._shift)+"px,0px)";
     book.style.transform=closedT;book.style.visibility="";hideInCam(s,true);
@@ -1470,7 +1541,7 @@ function closeScene(){
       s.querySelector(".stage-dim").animate([{opacity:1},{opacity:0}],{duration:D(320),fill:"forwards"});
       return animCam(cam,s._c,camHome(),D(BOOKK(s._kind)?260:300))})
     .catch(()=>{}).finally(()=>{s.remove();if(stage===s)stage=null;document.documentElement.style.overflow="";
-      const h=document.querySelector('#hall [data-open="'+({table:"advs",journal:"ledger",status:"guild",archive:"archive"}[s._kind])+'"]');if(h)try{h.focus({preventScroll:true})}catch(e){}});
+      const h=document.querySelector('#hall [data-open="'+({table:"advs",journal:"ledger",status:"guild",archive:"archive",nora:"nora"}[s._kind])+'"]');if(h)try{h.focus({preventScroll:true})}catch(e){}});
 }
 
 /* table seen from above, adventurers' dossiers on it */
@@ -1491,6 +1562,20 @@ function fillTable(){
         '<span class="dos-area">'+esc(a.area||advCls(a).area)+'</span></button>'}).join("");
   el.querySelectorAll("[data-dossier]").forEach(b=>{b.onclick=()=>openSheet(b.dataset.dossier,b,"view","adv");if(sheet&&sheet._kind==="adv"&&sheet._id===b.dataset.dossier)b.style.visibility="hidden"});
   const h=el.querySelector("[data-hire]");if(h){h.onclick=()=>openSheet(null,h,"hire","adv");if(sheet&&sheet._kind==="adv"&&sheet._mode==="hire"&&!sheet._id)h.style.visibility="hidden"}
+}
+function renderNoraSheet(w){
+  const paper=w.querySelector(".sheet");paper.classList.add("dirty","nora");
+  const rq=quests.filter(isRat),done=rq.filter(q=>q.status==="done").sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||"")),
+    act=rq.filter(q=>q.status==="active"),wait=rq.filter(q=>q.status==="review"),xp=done.reduce((t,q)=>t+questXP(q),0),
+    by={};done.forEach(q=>{by[q.rank]=(by[q.rank]||0)+1});
+  paper.setAttribute("aria-label","Листок норы");
+  paper.innerHTML='<header class="sh-h"><h2>Нора</h2><button class="x" data-sheet-close aria-label="Закрыть">×</button></header>'+
+    '<p class="small muted">Сюда уходят заказы, на которые лень выбирать авантюриста. Крыс сколько угодно, все свои.</p>'+
+    '<div class="nora-stats"><div><small>Опыт норы</small><b>'+xp+' XP</b></div><div><small>Выполнено</small><b>'+done.length+'</b></div><div><small>Крыс на заданиях</small><b>'+act.length+'</b></div><div><small>Ждут подтверждения</small><b>'+wait.length+'</b></div></div>'+
+    '<h3 class="sec">Выполнено по рангам</h3><div class="rk-row">'+RANKS.map(r=>'<span class="rk rk-'+r+'">'+r+'</span><b>'+(by[r]||0)+'</b>').join("")+'</div>'+
+    '<h3 class="sec">Сейчас грызут</h3>'+(act.length?'<ul class="nora-list">'+act.map(q=>'<li><b>'+esc(q.rat||"")+'</b><span>'+esc(q.title)+'</span></li>').join("")+'</ul>':'<p class="muted small">Все крысы отдыхают.</p>')+
+    '<h3 class="sec">Недавно сделали</h3>'+(done.length?'<ul class="nora-list">'+done.slice(0,6).map(q=>'<li><b>'+esc(q.rat||"")+'</b><span>'+esc(q.title)+'</span><i>'+(q.doneAt?ru(q.doneAt.slice(0,10)):"")+'</i></li>').join("")+'</ul>':'<p class="muted small">Пока ни одного. Крысы ждут работы.</p>');
+  paper.querySelector("[data-sheet-close]").onclick=()=>closeSheet();
 }
 function renderAdvSheet(w,force){
   const paper=w.querySelector(".sheet");
@@ -1653,7 +1738,7 @@ function bindBook(book){
     const title=v("#ae-title");if(!title){toast("Дай заказу название.");return}
     const iso=x=>x?x+"T12:00:00.000Z":null,done=v("#ae-done");
     ae.disabled=true;
-    try{await db.doc("quests/"+q.id).update({title,desc:v("#ae-desc"),rank:v("#ae-rank"),adv:v("#ae-adv")||null,takenAt:iso(v("#ae-taken")),doneAt:done?iso(done):(q.doneAt||null),result:v("#ae-res"),updatedAt:new Date().toISOString()});
+    try{await db.doc("quests/"+q.id).update({title,desc:v("#ae-desc"),rank:v("#ae-rank"),adv:v("#ae-adv")||null,...(v("#ae-adv")==="rat"?{rat:pickRatName(q)}:{}),takenAt:iso(v("#ae-taken")),doneAt:done?iso(done):(q.doneAt||null),result:v("#ae-res"),updatedAt:new Date().toISOString()});
       toast("Заказ в архиве обновлён.");document.activeElement&&document.activeElement.blur();turnTo("qd:"+q.id,true)}
     catch(e){fail(e);ae.disabled=false}};
   const bok=book.querySelector("#bk-ok");if(bok)bok.onclick=async()=>{const q=quests.find(x=>x.id===bok.dataset.id);if(!q)return;bok.disabled=true;
@@ -1749,20 +1834,20 @@ const SPREADS={
     const [t,arg]=sid.split(":");
     if(t==="q"||t==="r"){
       const per=t==="q"?7:3,list=t==="q"?done:reps,p=+arg||0,a=list.slice(p*per*2,p*per*2+per),b=list.slice(p*per*2+per,p*per*2+per*2),more=list.length>(p+1)*per*2;
-      const item=t==="q"?q=>{const ad=advById(q.adv);return '<button class="bk-row" data-turn="qd:'+esc(q.id)+'"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><span class="bk-rt"><b>'+esc(q.title)+'</b><i>'+(ad?esc(ad.name)+' · ':'')+(q.status==="review"?(q.submittedAt?"сдан "+ru(q.submittedAt.slice(0,10)):""):(q.doneAt?ru(q.doneAt.slice(0,10)):''))+'</i>'+(q.status==="review"?'<em class="pend-tag">Ожидает подтверждения</em>':'')+'</span></button>'}
+      const item=t==="q"?q=>{const ad=qAdv(q);return '<button class="bk-row" data-turn="qd:'+esc(q.id)+'"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><span class="bk-rt"><b>'+esc(q.title)+'</b><i>'+(ad?esc(ad.name)+' · ':'')+(q.status==="review"?(q.submittedAt?"сдан "+ru(q.submittedAt.slice(0,10)):""):(q.doneAt?ru(q.doneAt.slice(0,10)):''))+'</i>'+(q.status==="review"?'<em class="pend-tag">Ожидает подтверждения</em>':'')+'</span></button>'}
         :d=>'<article class="bk-rep"><h4>'+ru(d.id)+' · '+wd(d.id)+'</h4><p>'+esc(d.text)+'</p></article>';
       const nav='<div class="bk-nav">'+(p>0?'<button class="bk-link" data-back="'+t+':'+(p-1)+'">← назад</button>':'<button class="bk-link" data-back="home">← Оглавление</button>')+(more?'<button class="bk-link" data-turn="'+t+':'+(p+1)+'">далее →</button>':'<span></span>')+'</div>';
       return{left:'<div class="bk-h">'+(t==="q"?"Сданные заказы":"Записи журнала смены")+'</div>'+(a.length?a.map(item).join(""):'<p class="muted">'+(t==="q"?"Ещё ни один заказ не сдан.":"Записей пока нет.")+'</p>'),right:b.map(item).join("")+nav};
     }
     if(t==="qd"){
       const q=quests.find(x=>x.id===arg);if(!q)return SPREADS.archive("q:0");
-      const idx=done.findIndex(x=>x.id===q.id),pg=Math.max(0,Math.floor(idx/14)),a=advById(q.adv);
+      const idx=done.findIndex(x=>x.id===q.id),pg=Math.max(0,Math.floor(idx/14)),a=qAdv(q);
       const items=q.kind==="checklist"?'<div class="bk-h s">Пункты</div>'+(q.items||[]).map(it=>'<div class="bk-item'+(it.d?" done":"")+'"><span>'+(it.d?"✓":"○")+'</span><span>'+esc(it.t)+'</span><i>'+[fmtLong(it.min),it.at?ru(it.at):""].filter(Boolean).join(" · ")+'</i></div>').join(""):
         q.kind==="counter"?'<div class="small">Прогресс: '+(+q.current||0)+' / '+(+q.target||0)+' '+esc(q.unit||"")+'</div>':'';
       const links=(q.links||[]).map(l=>'<a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a>').join("<br>");
       const docs=(q.attachments||[]).map(f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>').join("<br>");
       return{left:'<div class="bk-h">Заказ</div><div class="bk-qt"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><b>'+esc(q.title)+'</b></div>'+(q.desc?'<p class="desc">'+esc(q.desc)+'</p>':'')+
-          '<table class="bk-t">'+kvRows([["Исполнитель",a?a.name+" · "+advCls(a).n:"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",q.doneAt?ru(q.doneAt.slice(0,10)):"-"]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
+          '<table class="bk-t">'+kvRows([["Исполнитель",a?advLabel(a):"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",q.doneAt?ru(q.doneAt.slice(0,10)):"-"]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
           (q.status==="review"?'<div class="pend-plate">Ожидает подтверждения</div>'+(canWrite?'<div class="bk-review"><label class="f">Замечание (если на доработку)<input type="text" id="bk-rnote" maxlength="200"></label><div class="bk-acts"><button class="btn pri" id="bk-ok" data-id="'+esc(q.id)+'">Подтвердить</button><button class="btn ret" id="bk-rework" data-id="'+esc(q.id)+'">На доработку</button></div></div>':''):'')+(q.note?'<p class="small">Замечание: '+esc(q.note)+'</p>':''),
         right:items+(docs?'<div class="bk-h s">Документы</div><div class="small">'+docs+'</div>':'')+(links?'<div class="bk-h s">Ссылки</div><div class="small">'+links+'</div>':'')+
           '<div class="bk-h s">Результат</div>'+(q.result?'<p class="desc">'+esc(q.result)+'</p>':'<p class="small muted">Не описан.</p>')+
@@ -1776,7 +1861,7 @@ const SPREADS={
           '<label class="f">Название<input type="text" id="ae-title" maxlength="140" value="'+esc(q.title||"")+'"></label>'+
           '<label class="f">Описание<textarea id="ae-desc" rows="4">'+esc(q.desc||"")+'</textarea></label>'+
           '<label class="f">Ранг<select id="ae-rank">'+RANKS.map(r=>'<option value="'+r+'"'+(q.rank===r?" selected":"")+'>'+r+' · '+RANK_HINT[r]+' · '+RANK_XP[r]+' XP</option>').join("")+'</select></label>'+
-          '<label class="f">Исполнитель<select id="ae-adv"><option value="">не указан</option>'+rosterSorted().map(a=>'<option value="'+esc(a.id)+'"'+(q.adv===a.id?" selected":"")+'>'+esc(a.name)+' · '+esc(advCls(a).n)+'</option>').join("")+'</select></label>',
+          '<label class="f">Исполнитель<select id="ae-adv"><option value="">не указан</option>'+rosterSorted().map(a=>'<option value="'+esc(a.id)+'"'+(q.adv===a.id?" selected":"")+'>'+esc(a.name)+' · '+esc(advCls(a).n)+'</option>').join("")+'<option value="rat"'+(isRat(q)?" selected":"")+'>'+(isRat(q)?"Крыса "+esc(q.rat||""):"Крысы из норы")+'</option>'+'</select></label>',
         right:'<div class="bk-h">Даты и итог</div><div class="row"><label class="f">Начат<input type="date" id="ae-taken" value="'+d(q.takenAt)+'"></label><label class="f">Выполнен<input type="date" id="ae-done" value="'+d(q.doneAt)+'"></label></div>'+
           '<label class="f">Результат<textarea id="ae-res" rows="4">'+esc(q.result||"")+'</textarea></label>'+
           '<div id="ae-extra" data-id="'+esc(q.id)+'">'+aeExtraHTML(q)+'</div>'+
@@ -1792,13 +1877,14 @@ function paperFlight(src,F){
   return{transform:"translate("+(S.left+S.width/2-(F.left+F.width/2))+"px,"+(S.top+S.height/2-(F.top+F.height/2))+"px) scale("+(S.width/F.width)+") rotate("+rot+"deg)",opacity:1};
 }
 function srcFor(w){
+  if(w._kind==="nora")return document.querySelector(".stage .cam [data-noranote]");
   if(w._kind==="adv"){const t=document.querySelector(".stage .ttop");if(!t)return null;return w._mode==="hire"&&!w._id?t.querySelector("[data-hire]"):t.querySelector('[data-dossier="'+w._id+'"]')}
   const cam=document.querySelector(".stage .cam");if(!cam)return null;
   return w._mode==="new"&&!w._id?cam.querySelector("[data-newpaper]"):cam.querySelector('[data-paper="'+w._id+'"]');
 }
 function openSheet(id,src,mode,kind){
   kind=kind||"quest";
-  if(kind==="quest"?(mode!=="new"&&!quests.find(x=>x.id===id)):(mode!=="hire"&&!advById(id)))return;
+  if(kind==="quest"?(mode!=="new"&&!quests.find(x=>x.id===id)):kind==="adv"?(mode!=="hire"&&!advById(id)):kind!=="nora")return;
   if(sheet)closeSheet(true);
   const w=document.createElement("div");w.className="sheetwrap";
   w.innerHTML='<div class="sheetback"></div><article class="sheet" role="dialog" aria-modal="true"></article>';
@@ -1826,6 +1912,8 @@ function closeSheet(instant){
 function renderSheet(force){
   if(!sheet)return;const w=sheet,paper=w.querySelector(".sheet");
   if(w._kind==="adv"){renderAdvSheet(w,force);return}
+  if(w._kind==="nora"){renderNoraSheet(w);return}
+  {const cq=quests.find(x=>x.id===w._id);paper.classList.toggle("dirty",isRat(cq))}
   const rankSync=()=>{const r=paper.querySelector("#f-rank"),b=paper.querySelector(".sh-h .rk");if(r&&b)r.addEventListener("change",()=>{b.className="rk rk-"+r.value;b.textContent=r.value})};
   if(w._mode==="new"){
     if(!force)return;
@@ -2114,6 +2202,8 @@ async function toggleItem(q,i,val){
 }
 async function questAct(q,a){
   const now=new Date().toISOString(),pick=$("#a-pick")?.value||null,pa=advById(pick);
+  if((a==="take"||a==="reassign")&&pick==="rat"){if(a==="reassign"&&isRat(q))return;const nm=pickRatName(q);
+    return patch(q,a==="take"?{status:"active",adv:"rat",rat:nm,takenAt:now}:{adv:"rat",rat:nm},"Заказ отдан крысам. За дело берётся крыса "+nm+".")}
   if(a==="take"){if(!pa){toast("Выбери авантюриста.");return}if(activeOf(pa).filter(z=>z.id!==q.id).length>=MAX_ACTIVE){toast(pa.name+" уже на задании. Каждый авантюрист берёт только один заказ за раз.");return}return patch(q,{status:"active",adv:pick,takenAt:now},pa.name+" отправляется выполнять заказ.")}
   if(a==="reassign"){if(!pa||pick===q.adv)return;if(activeOf(pa).filter(z=>z.id!==q.id).length>=MAX_ACTIVE){toast(pa.name+" уже на задании.");return}return patch(q,{adv:pick},"Заказ передан: "+pa.name+".")}
   if(a==="submit"){if(q.kind!=="simple"&&progressOf(q)<1){toast(q.kind==="checklist"?"Сначала выполни все пункты.":"Сначала запиши весь прогресс.");return}}
@@ -2124,7 +2214,7 @@ async function questAct(q,a){
   if(a==="unassign")return patch(q,{status:"board",adv:null},"Заказ снова висит на доске.");
   if(a==="reopen")return patch(q,{status:"active",doneAt:null},"Заказ снова в работе.");
   if(a==="edit"){if(sheet&&sheet._id===q.id){sheet._mode="edit";renderSheet(true);return}return openModal("edit",q.id)}
-  if(a==="cancel"){const a2=advById(q.adv);$("#delbox").innerHTML='<div class="confirm">Вернуть заказ на доску? Он вернётся в «Новые», весь прогресс обнулится, записи о нём исчезнут из журнала'+(a2?', а '+esc(a2.name)+' станет свободен':'')+'. <button class="btn ret sm" id="cn-yes">Вернуть</button><button class="btn ghost sm" id="cn-no">Не возвращать</button></div>';
+  if(a==="cancel"){const a2=qAdv(q);$("#delbox").innerHTML='<div class="confirm">Вернуть заказ на доску? Он вернётся в «Новые», весь прогресс обнулится, записи о нём исчезнут из журнала'+(a2?', а '+esc(a2.name)+' станет свободен':'')+'. <button class="btn ret sm" id="cn-yes">Вернуть</button><button class="btn ghost sm" id="cn-no">Не возвращать</button></div>';
     $("#cn-no").onclick=()=>$("#delbox").innerHTML="";
     $("#cn-yes").onclick=()=>cancelQuest(q);return}
   if(a==="del"){$("#delbox").innerHTML='<div class="confirm">Удалить заказ навсегда? <button class="btn warn sm" id="del-yes">Удалить</button><button class="btn ghost sm" id="del-no">Отмена</button></div>';
