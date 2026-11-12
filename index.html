@@ -407,8 +407,17 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
-.sheet.dirty{background-image:radial-gradient(ellipse 110px 70px at 97% 3%,rgba(120,88,46,.26),transparent 70%),radial-gradient(ellipse 150px 80px at 2% 98%,rgba(96,68,36,.24),transparent 70%),radial-gradient(circle 18px at 95% 55%,rgba(96,68,36,.22),transparent 80%),radial-gradient(circle 11px at 3% 32%,rgba(96,68,36,.26),transparent 80%),radial-gradient(ellipse 40px 12px at 60% 99%,rgba(80,56,30,.2),transparent 80%);
-  clip-path:polygon(0 0,100% 0,100% calc(100% - 26px),calc(100% - 8px) calc(100% - 18px),calc(100% - 2px) calc(100% - 10px),calc(100% - 14px) 100%,62% calc(100% - 4px),40% 100%,18% calc(100% - 5px),0 100%)}
+.sheet.dirty{background-image:
+    radial-gradient(ellipse 130px 80px at 97% 2%,rgba(120,86,42,.32),transparent 70%),
+    radial-gradient(ellipse 170px 95px at 1% 99%,rgba(96,66,32,.32),transparent 70%),
+    radial-gradient(ellipse 90px 55px at 99% 96%,rgba(96,66,32,.22),transparent 70%),
+    radial-gradient(circle 22px at 95% 52%,rgba(96,66,32,.28),transparent 80%),
+    radial-gradient(circle 13px at 3% 30%,rgba(96,66,32,.3),transparent 80%),
+    radial-gradient(circle 34px at 6% 62%,transparent 26px,rgba(110,76,38,.22) 28px,rgba(110,76,38,.16) 31px,transparent 33px),
+    radial-gradient(ellipse 60px 14px at 58% 99%,rgba(80,56,30,.24),transparent 80%),
+    linear-gradient(104deg,transparent 46%,rgba(90,64,36,.07) 46.3%,transparent 46.8%),
+    linear-gradient(8deg,transparent 63%,rgba(90,64,36,.06) 63.2%,transparent 63.6%);
+  clip-path:polygon(0 0,34% 0,35.5% 6px,37% 0,100% 0,100% 38%,calc(100% - 7px) calc(38% + 9px),100% calc(38% + 18px),100% calc(100% - 30px),calc(100% - 9px) calc(100% - 22px),calc(100% - 3px) calc(100% - 13px),calc(100% - 16px) 100%,84% calc(100% - 6px),73% 100%,62% calc(100% - 5px),52% 100%,40% calc(100% - 7px),29% 100%,18% calc(100% - 4px),8% 100%,0 calc(100% - 6px),0 71%,8px calc(71% - 6px),0 calc(71% - 14px))}
 .nora-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .nora-stats div{border:1px solid #cdbb93;border-radius:4px;padding:8px 10px;background:rgba(255,250,240,.45)}
 .nora-stats small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a40}.nora-stats b{font-family:var(--f-num);font-size:20px;color:#2b2116}
@@ -818,13 +827,29 @@ function noraG(n){
     '</g>'+
   '</g>';
 }
-function dirtySvg(x,y){
-  /* torn, stained paper for rat quests: dirt stays at the edges so the text stays readable */
-  const P=(dx,dy)=>(x+dx)+","+(y+dy);
-  return '<polygon class="pp" points="'+[P(0,0),P(22,0),P(25,2),P(28,0),P(60,0),P(60,49),P(57,53),P(60,57),P(58,62),P(60,66),P(55,72),P(50,69),P(45,72),P(38,70),P(31,72),P(24,70),P(16,72),P(9,69),P(3,72),P(0,70)].join(" ")+'" fill="#e2d6b8"/>'+
-    '<ellipse cx="'+(x+52)+'" cy="'+(y+10)+'" rx="7" ry="5" fill="#8a6a3a" opacity=".22"/><ellipse cx="'+(x+7)+'" cy="'+(y+63)+'" rx="8" ry="5" fill="#6b5030" opacity=".2"/>'+
-    '<circle cx="'+(x+55)+'" cy="'+(y+40)+'" r="2.4" fill="#5a4024" opacity=".22"/><circle cx="'+(x+4)+'" cy="'+(y+28)+'" r="1.6" fill="#5a4024" opacity=".25"/>'+
-    '<path d="M'+(x+46)+' '+(y+66)+'q3 -3 6 0" fill="none" stroke="#7a5f3a" stroke-width=".6" opacity=".5"/>';
+function dirtySvg(x,y,seed){
+  /* lightly torn, stained paper for rat quests; every quest gets its own wear from its id.
+     Dirt stays at the edges so the text stays readable */
+  let h=2166136261;for(const ch of String(seed||"")){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}
+  const R=()=>{h=Math.imul(h^(h>>>15),2246822507);h=Math.imul(h^(h>>>13),3266489909);h^=h>>>16;return (h>>>0)/4294967296};
+  const P=(dx,dy)=>(x+dx).toFixed(1)+","+(y+dy).toFixed(1),pts=[P(0,0)];
+  /* small nick on the top edge, sometimes */
+  if(R()<.55){const t=12+R()*34;pts.push(P(t,0),P(t+2,1.6+R()*1.2),P(t+4.5,0))}
+  pts.push(P(60,0));
+  /* right edge: one shallow tear somewhere */
+  const ry=30+R()*26;pts.push(P(60,ry),P(57.8-R()*1.2,ry+3),P(60,ry+6));
+  /* bottom edge: a few soft teeth, depth varies per paper */
+  pts.push(P(60,72-R()*2));let bx=60;
+  while(bx>4){bx-=5+R()*7;const d=R()*2.6;pts.push(P(Math.max(0,bx),72-d))}
+  pts.push(P(0,71));
+  /* left edge: sometimes a bite */
+  if(R()<.5){const ly=26+R()*30;pts.push(P(0,ly+5),P(1.8+R(),ly+2.5),P(0,ly))}
+  let o='<polygon class="pp" points="'+pts.join(" ")+'" fill="#e4d9bd"/>';
+  /* stains near the corners: 2-3, light */
+  const spots=[[52,9],[7,63],[55,64],[6,10],[56,40],[4,35]].sort(()=>R()-.5).slice(0,2+Math.floor(R()*2));
+  spots.forEach(([sx,sy])=>{o+='<ellipse cx="'+(x+sx+R()*3-1.5).toFixed(1)+'" cy="'+(y+sy+R()*3-1.5).toFixed(1)+'" rx="'+(3+R()*4).toFixed(1)+'" ry="'+(2.2+R()*2.5).toFixed(1)+'" fill="#7a5a32" opacity="'+(.1+R()*.08).toFixed(2)+'"/>'});
+  if(R()<.6)o+='<circle cx="'+(x+50+R()*7).toFixed(1)+'" cy="'+(y+30+R()*20).toFixed(1)+'" r="'+(1+R()*1.2).toFixed(1)+'" fill="#5a4024" opacity=".18"/>';
+  return o;
 }
 function paperHi(q,x,y){
   const a=qAdv(q),p=progressOf(q),over=isOver(q),c=PAPER_RC[q.rank],t=wrapT(q.title,15,2);
@@ -938,7 +963,7 @@ function drawHall(){
   let seed=11;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
   const OL='stroke="#1d1209" stroke-width="1.5"';
   const paper=(q,x,y,i,right)=>{const a=qAdv(q),rot=((i*7)%9-4);
-    return '<g data-paper="'+esc(q.id)+'" data-rot="'+rot+'" aria-label="Заказ: '+esc(q.title)+'" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')">'+(isRat(q)?dirtySvg(x,y):'<rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" fill="#e9dfc6"/>')+
+    return '<g data-paper="'+esc(q.id)+'" data-rot="'+rot+'" aria-label="Заказ: '+esc(q.title)+'" transform="rotate('+rot+' '+(x+30)+' '+(y+36)+')">'+(isRat(q)?dirtySvg(x,y,q.id):'<rect class="pp" x="'+x+'" y="'+y+'" width="60" height="72" fill="#e9dfc6"/>')+
     '<g class="lo"><rect x="'+(x+8)+'" y="'+(y+30)+'" width="44" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+38)+'" width="34" height="3" fill="#8a7754"/><rect x="'+(x+8)+'" y="'+(y+46)+'" width="40" height="3" fill="#8a7754"/>'+
     '<text x="'+(x+14)+'" y="'+(y+24)+'" font-family="Russo One" font-size="16" fill="'+pc[q.rank]+'">'+q.rank+'</text>'+
     (right&&q.kind!=="simple"?'<rect x="'+(x+8)+'" y="'+(y+58)+'" width="44" height="5" fill="#cdbf9f"/><rect x="'+(x+8)+'" y="'+(y+58)+'" width="'+(44*progressOf(q)).toFixed(0)+'" height="5" fill="#2a6fb0"/>':"")+
