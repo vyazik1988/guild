@@ -416,6 +416,10 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
+.hv{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:rgba(8,6,4,.88);padding:16px;gap:10px}
+.hv-bar{display:flex;align-items:center;gap:10px;color:#f3e6c8;font-family:"Exo 2",system-ui,sans-serif}.hv-bar b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.hv-sp{flex:1}
+.hv-body{flex:1;min-height:0;background:#fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.hv-body iframe{width:100%;height:100%;border:0;background:#fff}
 .sheet.dirty{background-image:
     radial-gradient(ellipse 130px 80px at 97% 2%,rgba(120,86,42,.32),transparent 70%),
     radial-gradient(ellipse 170px 95px at 1% 99%,rgba(96,66,32,.32),transparent 70%),
@@ -675,9 +679,24 @@ const CLASSES={
 const NO_CLASS={n:"Авантюрист",area:"",c:"#9aa8bf"};
 const MAX_ACTIVE=1, MAX_ADVS=3, DAILY_XP=15, STEP_XP=2;
 let draft=[],assetsApi=null,uploading={},pendingFiles=[];
-const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json"};
+const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json",html:"text/html",htm:"text/html"};
 const ATT_ACCEPT=Object.keys(ATT_TYPES).map(e=>"."+e).join(",");
-const ATT_HINT="PDF, изображения, видео, TXT, MD, CSV, JSON · до 20 МБ";
+const ATT_HINT="PDF, изображения, видео, HTML, TXT, MD, CSV, JSON · до 20 МБ";
+const isHtmlAtt=f=>/^html?$/.test(extOf(f.name||""))||f.type==="text/html";
+const attLink=f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener"'+(isHtmlAtt(f)?' data-html="'+esc(f.id)+'" data-name="'+esc(f.name)+'"':'')+'>'+esc(f.name)+'</a>';
+/* HTML attachments open inside the tracker in an isolated frame: the file's scripts run but cannot reach the tracker or the login */
+async function openHtmlAtt(id,name){
+  const w=document.createElement("div");w.className="hv";w.setAttribute("role","dialog");w.setAttribute("aria-modal","true");w.setAttribute("aria-label",name);
+  w.innerHTML='<div class="hv-bar"><b>'+esc(name)+'</b><span class="hv-sp"></span><a class="btn sm" href="'+esc(blobUrl(id))+'" target="_blank" rel="noopener">Исходный файл</a><button class="btn sm" type="button" data-hv-close>Закрыть</button></div><div class="hv-body"><p class="muted">Загружаю…</p></div>';
+  document.body.appendChild(w);
+  const close=()=>{w.remove();document.removeEventListener("keydown",key,true)},key=e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();close()}};
+  document.addEventListener("keydown",key,true);w.querySelector("[data-hv-close]").onclick=close;w.querySelector("[data-hv-close]").focus();
+  try{const r=await fetch(blobUrl(id));if(!r.ok)throw new Error(r.status);const html=await r.text();
+    const f=document.createElement("iframe");f.setAttribute("sandbox","allow-scripts allow-popups allow-forms allow-modals");f.setAttribute("referrerpolicy","no-referrer");f.title=name;f.srcdoc=html;
+    const b=w.querySelector(".hv-body");b.innerHTML="";b.appendChild(f)}
+  catch(e){w.querySelector(".hv-body").innerHTML='<p class="muted">Не удалось открыть файл. Попробуй «Исходный файл».</p>'}
+}
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[data-html]");if(!a)return;e.preventDefault();openHtmlAtt(a.dataset.html,a.dataset.name||"HTML")});
 const fmtSize=b=>b<1024?b+" Б":b<1048576?Math.round(b/1024)+" КБ":(b/1048576).toFixed(1)+" МБ";
 const extOf=n=>(String(n).split(".").pop()||"").toLowerCase();
 const GUILD_TITLE={E:"Захудалая контора",D:"Местная гильдия",C:"Надёжная гильдия",B:"Известная гильдия",A:"Прославленная гильдия",S:"Королевская гильдия"};
@@ -1318,7 +1337,7 @@ function questBody(q,sheetMode){
   const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite);
   body+='<h3 class="sec">Документы · '+atts.length+'</h3><div class="atts">'+
     atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
-      '<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      attLink(f)+'<span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
       (canAtt?'<button class="ib rm" data-att-rm="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
     ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
     (!atts.length&&!ups.length?'<div class="small muted">'+(canAtt?"Документов нет. Прикрепи файл кнопкой ниже или перетащи его на бланк.":"Документов нет.")+'</div>':'')+'</div>'+
@@ -1853,7 +1872,7 @@ function aeExtraHTML(q){
   const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite),links=q.links||[];
   return '<div class="bk-h s">Документы · '+atts.length+'</div><div class="atts">'+
     atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
-      '<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      attLink(f)+'<span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
       (canAtt?'<button class="ib rm" data-ae-att="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
     ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
     (!atts.length&&!ups.length?'<div class="small muted">Документов нет.</div>':'')+'</div>'+
@@ -2076,7 +2095,7 @@ const SPREADS={
       const items=q.kind==="checklist"?'<div class="bk-h s">Пункты</div>'+(q.items||[]).map(it=>'<div class="bk-item'+(it.d?" done":"")+'"><span>'+(it.d?"✓":"○")+'</span><span>'+esc(it.t)+'</span><i>'+[fmtLong(it.min),it.at?ru(it.at):""].filter(Boolean).join(" · ")+'</i></div>').join(""):
         q.kind==="counter"?'<div class="small">Прогресс: '+(+q.current||0)+' / '+(+q.target||0)+' '+esc(q.unit||"")+'</div>':'';
       const links=(q.links||[]).map(l=>'<a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a>').join("<br>");
-      const docs=(q.attachments||[]).map(f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>').join("<br>");
+      const docs=(q.attachments||[]).map(attLink).join("<br>");
       return{left:'<div class="bk-h">Заказ</div><div class="bk-qt"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><b>'+esc(q.title)+'</b></div>'+(q.desc?'<p class="desc">'+esc(q.desc)+'</p>':'')+
           '<table class="bk-t">'+kvRows([["Исполнитель",a?advLabel(a):"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",(q.doneAt?ru(q.doneAt.slice(0,10)):"-")+(q.autoConfirmed?" · подтверждён автоматически":"")]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
           (q.status==="review"?'<div class="pend-plate">Ожидает подтверждения</div>'+(canWrite?'<div class="bk-review"><label class="f">Замечание (если на доработку)<input type="text" id="bk-rnote" maxlength="200"></label><div class="bk-acts"><button class="btn pri" id="bk-ok" data-id="'+esc(q.id)+'">Подтвердить</button><button class="btn ret" id="bk-rework" data-id="'+esc(q.id)+'">На доработку</button></div></div>':''):'')+(q.note?'<p class="small">Замечание: '+esc(q.note)+'</p>':''),
