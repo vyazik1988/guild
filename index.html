@@ -419,14 +419,15 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-add:hover{border-color:#1f5f9e;background:rgba(31,95,158,.06)}
 .jr-box{margin-top:10px;padding:10px;border:1px solid #cdbb93;border-radius:4px;background:rgba(255,250,240,.6);display:flex;flex-direction:column;gap:8px}
 .jr-cap{font-family:var(--f-disp);color:#6b5a40;letter-spacing:.04em}
-.jr-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.jr-box label.f[hidden]{display:none}
+.jr-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
 .jr-opt{display:flex;flex-direction:column;gap:2px;text-align:left;background:#fffaf0;border:1px solid #b9a57c;border-radius:4px;padding:10px;color:#2b2116;cursor:pointer}
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
 .jr-total{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 12px;margin:2px 0 6px;border:1px solid #cdbb93;border-radius:6px;background:rgba(255,250,240,.6)}
 .jr-total span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a40}.jr-total b{font-family:var(--f-num);font-size:20px;color:#2b2116}
-.jr-tag.t-q{background:#1f5f9e;color:#fff;border-color:#1f5f9e}.jr-tag.t-i,.jr-tag.t-c{color:#4f6f8f;border-style:dashed;font-size:10px}.jr-tag.t-o{color:#7a5a2a}
+.jr-tag.t-q{background:#1f5f9e;color:#fff;border-color:#1f5f9e}.jr-tag.t-i,.jr-tag.t-c{color:#4f6f8f;border-style:dashed;font-size:10px}.jr-tag.t-o{color:#7a5a2a}.jr-tag.t-w{color:#9a6a14;border-style:dashed;font-size:10px;background:rgba(227,176,75,.14)}
 .jr-it.sub{padding-left:26px;position:relative}.jr-it.sub::before{content:"";position:absolute;left:10px;top:0;bottom:50%;width:10px;border-left:1.5px solid #b9a57c;border-bottom:1.5px solid #b9a57c;border-bottom-left-radius:5px}
 .jr-it.sub .jr-tx b{font-weight:500}.jr-it.k-q .jr-tx b{font-weight:700}
 .cal-open{align-self:flex-start;background:none;border:1px solid #b9a57c;border-radius:4px;color:#1f5f9e;font-weight:700;padding:6px 12px;cursor:pointer}.cal-open:hover{border-color:#1f5f9e;background:rgba(31,95,158,.06)}
@@ -1986,7 +1987,7 @@ function bindBook(book){
   const day=book.querySelector(".pr #bk-day,.pl #bk-day");if(day)day.onchange=()=>{const v=day.value;if(v&&v<=today()&&v>=GUILD_OPEN)turnTo(v,v<s._book.sid);else{toast(v&&v<GUILD_OPEN?"Гильдия открылась "+ru(GUILD_OPEN)+": более ранних записей нет.":"Записать можно только прошедший или сегодняшний день.");day.value=s._book.sid}};
   if(s._book.kind==="journal"){
     const date=s._book.sid,ents=()=>entriesOf(daily.find(d=>d.id===date)).slice();
-    const setMode=m=>{s._jadd=m||null;s._jedit=null;renderBookSpread(false);const f=book.querySelector("#jr-q,#jr-t");if(f)f.focus()};
+    const setMode=m=>{s._jadd=m||null;s._jedit=null;renderBookSpread(false);const f=book.querySelector("#jr-q,#jw-q,#jr-t");if(f)f.focus()};
     book.querySelectorAll("[data-jmode]").forEach(b=>b.onclick=()=>setMode(b.dataset.jmode));
     const ad=book.querySelector("#jr-add");if(ad)ad.onclick=()=>setMode("pick");
     const commit=async(list,msg)=>{const was=reports().some(d=>d.id===date);try{await saveEntries(date,list);s._jadd=null;if(document.activeElement)document.activeElement.blur();
@@ -2004,6 +2005,13 @@ function bindBook(book){
       iw.hidden=!its.length;is.innerHTML=(whole?'<option value="">Весь заказ целиком</option>':'')+its.map(o=>'<option value="'+o.k+'">'+(o.it.d?"✓ ":"")+esc(o.it.t)+'</option>').join("");if(is.onchange)is.onchange();else fillT(null)};
     const hh=book.querySelector("#jr-h"),mm=book.querySelector("#jr-m"),getMin=()=>hh?Math.max(0,(parseInt(hh.value,10)||0)*60+(parseInt(mm.value,10)||0)):0;
     const fillT=m=>{if(!hh)return;hh.value=m?Math.floor(m/60):0;mm.value=m?m%60:0};
+    const wq=book.querySelector("#jw-q"),wi=book.querySelector("#jw-i"),wiw=book.querySelector("#jw-iw"),wok=book.querySelector("#jw-ok");
+    if(wq)wq.onchange=()=>{const q=quests.find(x=>x.id===wq.value);wok.disabled=!q;const its=q&&q.kind==="checklist"?clean(q.items||[]).map((it,k)=>({it,k})).filter(o=>!o.it.d):[];
+      wiw.hidden=!its.length;wi.innerHTML='<option value="">Над заказом в целом</option>'+its.map(o=>'<option value="'+o.k+'">'+esc(o.it.t)+'</option>').join("");if(its.length)wi.value=String(its[0].k)};
+    if(wok)wok.onclick=()=>{const q=quests.find(x=>x.id===wq.value);if(!q)return;const mn=getMin();if(!mn){toast("Укажи, сколько времени ушло на работу.");hh&&hh.focus();return}
+      const k=wi&&!wiw.hidden&&wi.value!==""?+wi.value:null,it=k==null?null:clean(q.items||[])[k];
+      const en={t:"quest",qid:q.id,i:"w"+Date.now(),title:q.title,wip:true,min:mn};if(it){en.wi=k;en.item=it.t}
+      const l=ents();l.push(en);commit(l,"Работа записана в журнал: "+fmtLong(mn).replace(/^~ /,"")+".")};
     if(is)is.onchange=()=>{const q=quests.find(x=>x.id===qs.value),it=q&&is.value!==""?clean(q.items||[])[+is.value]:null;fillT(it&&it.min)};
     if(ok)ok.onclick=()=>{
       if(qs){const q=quests.find(x=>x.id===qs.value);if(!q)return;const k=is.value===""?null:+is.value,it=k==null?null:clean(q.items||[])[k];
@@ -2043,6 +2051,7 @@ function entriesOf(e){
 }
 function entryLine(en){
   if(en.t==="quest"&&en.cnt)return "- Заказ «"+en.title+"»: +"+en.cnt+" "+(en.unit||"")+(en.note?" ("+en.note+")":"")+(en.min?", "+fmtLong(en.min):"");
+  if(en.t==="quest"&&en.wip)return "- Работа в процессе: "+(en.item?en.item+" (заказ «"+en.title+"»)":"заказ «"+en.title+"»")+(en.min?", "+fmtLong(en.min):"");
   if(en.t==="quest")return en.item?"- "+en.item+" (заказ «"+en.title+"»"+(en.min?", "+fmtLong(en.min):"")+")":"- "+(en.done?"Выполнен заказ":"Работа над заказом")+" «"+en.title+"»"+(en.min?" ("+fmtLong(en.min)+")":"");
   return "- "+en.text+(en.min?" ("+fmtLong(en.min)+")":"");
 }
@@ -2050,14 +2059,18 @@ async function saveEntries(date,entries){
   await db.doc("daily/"+date).set({date,entries,text:entries.map(entryLine).join("\n"),by:me?.id||null,at:new Date().toISOString()});
 }
 const JR_TIME='<div class="jr-time"><span class="small muted">Примерное время работы</span><div class="row"><label class="f">Часы<input type="number" id="jr-h" min="0" max="999" value="0" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="jr-m" min="0" max="59" step="5" value="0" inputmode="numeric"></label></div></div>';
-function loggedKeys(){const k=new Set();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.cnt)k.add(x.qid+"|"+(x.i??""))}));return k}
+function loggedKeys(){const k=new Set();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.cnt&&!x.wip)k.add(x.qid+"|"+(x.i??""))}));return k}
 function freeItems(q,lk){return (q.kind==="checklist"?clean(q.items||[]):[]).map((it,k)=>({it,k})).filter(o=>!lk.has(q.id+"|"+o.k))}
 function questLoggable(q,lk){return !lk.has(q.id+"|")||freeItems(q,lk).length>0}
 /* ---- worked time per day ----
    pieces of a quest (items, pages, plain work) count on their own day; the "quest done" entry adds only
    what is left of its total after all those pieces, on the day it was submitted */
-function questLogged(){const m=new Map();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.done&&x.min)m.set(x.qid,(m.get(x.qid)||0)+(+x.min||0))}));return m}
-function entryMin(en,ql){if(en.t==="quest"&&en.done)return Math.max(0,(+en.min||0)-(ql.get(en.qid)||0));return +en.min||0}
+/* "work in progress" entries (wip) count on their day; when the item / quest is finished later, its total minus that work goes to the finishing day */
+function questLogged(){const m=new Map(),it=new Map();m.items=it;const all=[];daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid)all.push(x)}));
+  all.forEach(x=>{if(x.wip&&x.wi!=null&&x.min){const k=x.qid+"|"+x.wi;it.set(k,(it.get(k)||0)+(+x.min||0))}});
+  all.forEach(x=>{if(!x.done){const v=entryMin(x,m);if(v)m.set(x.qid,(m.get(x.qid)||0)+v)}});return m}
+function entryMin(en,ql){const mn=+en.min||0;if(en.t!=="quest")return mn;if(en.done)return Math.max(0,mn-(ql.get(en.qid)||0));
+  if(en.item&&!en.wip&&typeof en.i==="number"&&ql.items)return Math.max(0,mn-(ql.items.get(en.qid+"|"+en.i)||0));return mn}
 function dayMin(d,ql){return entriesOf(d).reduce((t,x)=>t+entryMin(x,ql),0)}
 const fmtH=m=>{m=Math.round(+m||0);const h=Math.floor(m/60),r=m%60;return h&&r?h+"\u00a0ч "+r+"\u00a0мин":h?h+"\u00a0ч":r?r+"\u00a0мин":"0\u00a0ч"};
 const fmtHs=m=>{m=Math.round(+m||0);const h=Math.floor(m/60),r=m%60;return !m?"":h&&r?h+"ч"+String(r).padStart(2,"0"):h?h+"ч":r+"м"};
@@ -2098,33 +2111,34 @@ function calendarSpread(sid){
 }
 function journalRight(sid,e,edit){
   const ents=entriesOf(e),st=stage&&stage._jadd||null,ql=questLogged();
-  const kindOf=en=>en.t!=="quest"?"o":en.cnt?"c":en.item?"i":"q";
+  const kindOf=en=>en.t!=="quest"?"o":en.wip?"w":en.cnt?"c":en.item?"i":"q",isHead=en=>{const k=kindOf(en);return k==="q"||(k==="w"&&!en.item)};
   const li=(en,k,child)=>{
     const kd=kindOf(en),own=entryMin(en,ql),tot=+en.min||0;
     let main,sub="";
     if(kd==="o")main=en.text;
     else if(kd==="c")main="+"+en.cnt+" "+(en.unit||"")+(en.note?" · "+en.note:"");
-    else if(kd==="i")main=en.item;
+    else if(kd==="i"||kd==="w")main=en.item||en.title;
     else main=en.title;
     if(kd==="q")sub=(en.done?"Заказ выполнен":"Работа над заказом")+(en.done&&tot?(own===tot?" · "+fmtH(tot):" · всего "+fmtH(tot)+(own?", за этот день +"+fmtH(own):", время учтено в пунктах")):(tot?" · "+fmtH(tot):""));
-    else{sub=(!child&&kd!=="o"?"Заказ «"+esc(en.title)+"»":"");if(tot)sub+=(sub?" · ":"")+fmtH(tot)}
-    const tag={o:"Другое",c:"Прогресс",i:"Пункт",q:"Задание"}[kd];
+    else if(kd==="w"){sub=(en.item?"Пункт в процессе":"Заказ ещё не закончен")+(en.item&&!child?" · заказ «"+esc(en.title)+"»":"")+(tot?" · "+fmtH(tot):"")}
+    else{sub=(!child&&kd!=="o"?"Заказ «"+esc(en.title)+"»":"");if(tot)sub+=(sub?" · ":"")+(kd==="i"&&own!==tot?"всего "+fmtH(tot)+(own?", за этот день +"+fmtH(own):", время учтено в работе раньше"):fmtH(tot))}
+    const tag={o:"Другое",c:"Прогресс",i:"Пункт",q:"Задание",w:"В процессе"}[kd];
     const ed=edit&&stage&&stage._jedit===k,m=en.min||0;
     return '<li class="jr-it k-'+kd+(child?' sub':'')+(ed?' on':'')+'"><span class="jr-tag t-'+kd+'">'+tag+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+
-      (ed?'<div class="jr-ed"><span class="small muted">'+(kd==="q"&&en.done?"Всего времени на заказ":"Примерное время работы")+'</span><div class="row"><label class="f">Часы<input type="number" id="je-h" min="0" max="999" value="'+Math.floor(m/60)+'" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="je-m" min="0" max="59" step="5" value="'+(m%60)+'" inputmode="numeric"></label></div>'+
+      (ed?'<div class="jr-ed"><span class="small muted">'+(kd==="q"&&en.done?"Всего времени на заказ":kd==="i"?"Всего времени на пункт":"Примерное время работы")+'</span><div class="row"><label class="f">Часы<input type="number" id="je-h" min="0" max="999" value="'+Math.floor(m/60)+'" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="je-m" min="0" max="59" step="5" value="'+(m%60)+'" inputmode="numeric"></label></div>'+
         '<div class="bk-acts"><button class="btn pri" id="je-ok" data-k="'+k+'">Сохранить</button><button class="bk-link" id="je-no">Отмена</button></div></div>':'')+'</div>'+
       (edit&&!ed?'<button class="jr-edb" data-jedit="'+k+'" title="Изменить время" aria-label="Изменить время">✎</button><button class="jr-del" data-jdel="'+k+'" title="Убрать действие" aria-label="Убрать действие">×</button>':'')+'</li>';
   };
   /* group the pieces of one quest under its "quest" line when that line is on this day */
   const groups=[],byQ=new Map();
-  ents.forEach((en,k)=>{if(en.t==="quest"&&en.qid){let g=byQ.get(en.qid);if(!g){g={q:en.qid,head:[],kids:[]};byQ.set(en.qid,g);groups.push(g)}(kindOf(en)==="q"?g.head:g.kids).push([en,k])}else groups.push({head:[[en,k]],kids:[]})});
+  ents.forEach((en,k)=>{if(en.t==="quest"&&en.qid){let g=byQ.get(en.qid);if(!g){g={q:en.qid,head:[],kids:[]};byQ.set(en.qid,g);groups.push(g)}(isHead(en)?g.head:g.kids).push([en,k])}else groups.push({head:[[en,k]],kids:[]})});
   const list=groups.map(g=>g.head.map(([en,k])=>li(en,k,false)).join("")+g.kids.map(([en,k])=>li(en,k,g.head.length>0)).join("")).join("");
   const total=e?dayMin(e,ql):0;
   let h=(ents.length?'<div class="jr-total"><span>Отработано за день</span><b>'+fmtH(total)+'</b></div>':'')+
     (ents.length?'<ol class="jr-list">'+list+'</ol>':'<p class="muted jr-empty">'+(edit?"Пока нет ни одного действия за этот день.":"Менеджер ещё не записал результат за этот день.")+'</p>');
   if(!edit)return h;
   if(!st)h+='<button class="jr-add" id="jr-add">+ Добавить действие</button>';
-  else if(st==="pick")h+='<div class="jr-box"><div class="jr-cap">Что добавить?</div><div class="jr-pick"><button class="jr-opt" data-jmode="quest"><b>Задание</b><i>заказ с доски или из архива</i></button><button class="jr-opt" data-jmode="other"><b>Другое</b><i>своими словами</i></button></div><div class="bk-acts"><button class="bk-link" data-jmode="">Отмена</button></div></div>';
+  else if(st==="pick")h+='<div class="jr-box"><div class="jr-cap">Что добавить?</div><div class="jr-pick"><button class="jr-opt" data-jmode="quest"><b>Задание</b><i>выполнил заказ или его пункт</i></button><button class="jr-opt" data-jmode="wip"><b>Работа в процессе</b><i>поработал, но ещё не закончил</i></button><button class="jr-opt" data-jmode="other"><b>Другое</b><i>своими словами</i></button></div><div class="bk-acts"><button class="bk-link" data-jmode="">Отмена</button></div></div>';
   else if(st==="quest"){
     const lk=loggedKeys(),act=quests.filter(q=>q.status!=="done"&&questLoggable(q,lk)).sort((a,b)=>(b.takenAt||b.createdAt||"").localeCompare(a.takenAt||a.createdAt||""));
     const dn=quests.filter(q=>q.status==="done"&&questLoggable(q,lk)).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
@@ -2134,6 +2148,14 @@ function journalRight(sid,e,edit){
       '<label class="f" id="jr-iw" hidden>Что именно<select id="jr-i"></select></label>'+JR_TIME+
       '<div class="bk-acts"><button class="btn pri" id="jr-ok" disabled>Добавить</button><button class="bk-link" data-jmode="">Отмена</button></div>'
       :'<p class="muted small">Нет заказов, которые ещё не отмечены в журнале.</p><div class="bk-acts"><button class="bk-link" data-jmode="">Назад</button></div>')+'</div>';
+  }else if(st==="wip"){
+    const act=quests.filter(q=>q.status!=="done"&&q.status!=="review").sort((a,b)=>(b.takenAt||b.createdAt||"").localeCompare(a.takenAt||a.createdAt||""));
+    h+='<div class="jr-box"><div class="jr-cap">Работа в процессе</div>'+(act.length?
+      '<p class="small muted" style="margin:0">Запишется только время: пункт не отметится, заказ не сдастся. Работу над одним и тем же можно записывать в разные дни.</p>'+
+      '<label class="f">Заказ<select id="jw-q"><option value="">- выбери заказ -</option>'+act.map(q=>'<option value="'+q.id+'">'+esc(q.title)+(q.status==="active"?" · в работе":"")+'</option>').join("")+'</select></label>'+
+      '<label class="f" id="jw-iw" hidden>Над чем работал<select id="jw-i"></select></label>'+JR_TIME+
+      '<div class="bk-acts"><button class="btn pri" id="jw-ok" disabled>Записать работу</button><button class="bk-link" data-jmode="">Отмена</button></div>'
+      :'<p class="muted small">Нет незаконченных заказов.</p><div class="bk-acts"><button class="bk-link" data-jmode="">Назад</button></div>')+'</div>';
   }else h+='<div class="jr-box"><div class="jr-cap">Другое</div><textarea id="jr-t" rows="3" placeholder="Что конкретно сделано"></textarea>'+JR_TIME+'<div class="bk-acts"><button class="btn pri" id="jr-ok">Добавить</button><button class="bk-link" data-jmode="">Отмена</button></div></div>';
   return h;
 }
