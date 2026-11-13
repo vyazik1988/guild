@@ -434,6 +434,15 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .nora-list b{flex:0 0 auto;color:#5f5a4c}.nora-list span{flex:1;min-width:0;overflow-wrap:anywhere}.nora-list i{font-style:normal;font-size:12px;color:#6b5a40}
 .rk-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.rk-row b{font-family:var(--f-num);margin-left:4px}
 @media (max-width:560px){.nora-stats{grid-template-columns:repeat(2,1fr)}}
+#hall .hall-gear{animation:hgSpin 9s linear infinite;transform-box:fill-box;transform-origin:center}
+#hall .hall-arm-r{animation:hgArm 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes hgArm{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+#hall .hall-seam{animation:hgSeam 3.6s ease-in-out infinite}
+#hall .hall-glow{animation:hgGlow 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes hgSpin{to{transform:rotate(360deg)}}
+@keyframes hgSeam{0%,100%{opacity:.25}50%{opacity:.8}}
+@keyframes hgGlow{0%,100%{opacity:.4}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#hall .hall-gear,#hall .hall-seam,#hall .hall-glow,#hall .hall-arm-r{animation:none}}
 #hall .ratEyes{animation:ratBlink 5s infinite}@keyframes ratBlink{0%,92%,100%{opacity:1}94%,97%{opacity:0}}
 #hall .ratHead{animation:ratPeek 6s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
 @keyframes ratPeek{0%,70%,100%{transform:translateX(0)}78%,86%{transform:translateX(3px)}}
@@ -1056,12 +1065,51 @@ function drawHall(){
     '<ellipse cx="'+cx+'" cy="'+(cy+6)+'" rx="'+rx+'" ry="'+ry+'" fill="#5a3a20" '+OL+'/><ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#tabletop)" '+OL+'/>'+
     '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.7)+'" ry="'+(ry*.6)+'" fill="none" stroke="#b08050" opacity=".35"/><ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.38)+'" ry="'+(ry*.32)+'" fill="none" stroke="#b08050" opacity=".3"/>';
 
+  /* the Chronometer seen from the counter: brass rim with day ticks, iris seams leaking light, a gear under the apron */
+  const astTable=(cx,cy,rx,ry)=>{
+    const P=(f,deg)=>{const a=deg*Math.PI/180;return[cx+rx*f*Math.cos(a),cy+ry*f*Math.sin(a)]};
+    let o='';
+    /* pedestal: brass column with a turning gear at its foot */
+    o+='<path d="M'+(cx-9)+' '+(cy+10)+'h18l4 40h-26z" fill="#6a4a1c" '+OL+'/>'+
+      '<path d="M'+(cx-4)+' '+(cy+12)+'v36" stroke="#e8c77a" stroke-width="2" opacity=".55"/>'+
+      '<ellipse cx="'+cx+'" cy="'+(cy+53)+'" rx="30" ry="6" fill="#3a2414" '+OL+'/><ellipse cx="'+cx+'" cy="'+(cy+51)+'" rx="22" ry="3.5" fill="#b98a3c" opacity=".7"/>';
+    /* gears hanging under the tabletop, half hidden by the apron */
+    const hg=(x,y,r,t,rev)=>'<g transform="translate('+x+' '+y+')"><g class="hall-gear"'+(rev?' style="animation-direction:reverse"':'')+'><path d="'+gearPath(r,t,Math.max(3.5,r*.2))+'" fill="url(#hgBrass)" stroke="#2a180c" stroke-width="1.4"/><circle r="'+(r*.55)+'" fill="none" stroke="#2a180c" stroke-width="1" opacity=".6"/><circle r="'+(r*.2)+'" fill="#2a180c"/></g></g>';
+    o+=hg(cx-58,cy+33,19,12,false)+hg(cx-30,cy+43,11,8,true)+hg(cx+56,cy+32,16,10,true);
+    /* apron with a brass band */
+    o+='<ellipse cx="'+cx+'" cy="'+(cy+7)+'" rx="'+rx+'" ry="'+ry+'" fill="#4a2f19" '+OL+'/>'+
+      '<path d="M'+(cx-rx)+' '+(cy+1)+'A'+rx+' '+ry+' 0 0 0 '+(cx+rx)+' '+(cy+1)+'v4A'+rx+' '+ry+' 0 0 1 '+(cx-rx)+' '+(cy+5)+'z" fill="#c9973f" opacity=".85"/>';
+    /* top: wood inside a brass calendar ring */
+    o+='<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="#b98a3c" '+OL+'/>'+
+      '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.9)+'" ry="'+(ry*.86)+'" fill="url(#tabletop)" stroke="#5e4012" stroke-width="1"/>';
+    for(let d=0;d<360;d+=6){const big=d%30===0,[x1,y1]=P(.92,d),[x2,y2]=P(big?.995:.97,d);
+      o+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" stroke="#4a3010" stroke-width="'+(big?1.2:.6)+'"/>'}
+    /* iris seams: eight blade joints meeting at the brass hub, light leaking out of them */
+    let seams='';for(let k=0;k<8;k++){const[x,y]=P(.88,k*45+12);seams+='M'+cx+' '+cy+'L'+x.toFixed(1)+' '+y.toFixed(1)}
+    o+='<path d="'+seams+'" stroke="#2a1408" stroke-width="1.4"/>'+
+      '<path class="hall-seam" d="'+seams+'" stroke="#ffd98a" stroke-width="1.2" opacity=".55"/>';
+    /* hub and a hand pointing at today */
+    const tA=astAng(today()),[hx,hy]=P(.8,tA);
+    o+='<path d="M'+cx+' '+cy+'L'+hx.toFixed(1)+' '+hy.toFixed(1)+'" stroke="#e8c77a" stroke-width="2" stroke-linecap="round"/>'+
+      '<ellipse cx="'+cx+'" cy="'+cy+'" rx="11" ry="3.4" fill="#d9ad55" stroke="#3b2a12" stroke-width="1.2"/>'+
+      /* a little armillary sphere on the hub */
+      '<path d="M'+cx+' '+cy+'v-9" stroke="#8a6420" stroke-width="2"/>'+
+      '<g class="hall-arm" transform="translate('+cx+' '+(cy-19)+')">'+
+        '<circle r="9.5" fill="none" stroke="#e8c77a" stroke-width="1.6"/>'+
+        '<ellipse rx="9.5" ry="3" fill="none" stroke="#c9973f" stroke-width="1.3"/>'+
+        '<ellipse class="hall-arm-r" rx="3.4" ry="9.5" fill="none" stroke="#f3d58e" stroke-width="1.3"/>'+
+        '<circle r="2.6" fill="#ffd98a"/><circle r="5" fill="#ffd98a" opacity=".25"/></g>';
+    /* soft golden glow over the top, breathing */
+    o+='<ellipse class="hall-glow" cx="'+cx+'" cy="'+cy+'" rx="'+(rx*.75)+'" ry="'+(ry*.7)+'" fill="url(#astGlowH)"/>';
+    return o;
+  };
+
   /* ---- adventurers' corner ---- */
   const S=404,TX=300,roster=advs.slice().sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"")||a.id.localeCompare(b.id));
   const n=roster.length,xs=n===1?[TX]:n===2?[245,355]:roster.map((_,i)=>TX-90+180*i/(n-1));
   let corner='';
   roster.forEach((a,i)=>{const x=xs[i],c=chairFront(x,S),sit=activeOf(a).length===0;corner+=c.back+(sit?person(a,x,S-72)+legs(x,S,advColor(a)):'')+c.front});
-  corner+='<ellipse cx="'+TX+'" cy="446" rx="98" ry="6" fill="#000" opacity=".45"/><g class="olt">'+table(TX,388,140,22)+'</g>';
+  corner+='<ellipse cx="'+TX+'" cy="446" rx="98" ry="6" fill="#000" opacity=".45"/><g class="olt">'+astTable(TX,388,140,22)+'</g>';
   corner+=candle(TX-80,388,.4)+mug(TX+82,390);
   const dx=n===1?[TX]:roster.map((_,i)=>TX-58+116*i/Math.max(1,n-1));
   roster.forEach((a,i)=>{corner+='<g transform="translate('+dx[i].toFixed(0)+' 405) rotate('+((i*13)%9-4)+')"><path d="M-19 -5L16 -6L20 5L-15 6Z" fill="#e9dfc6" stroke="#6b5a40" stroke-width=".9"/><path d="M-19 -5L-6 -5.5L-5.2 -1L-17.5 -.6Z" fill="'+advColor(a)+'"/><path d="M-9 1h18M-8 3.4h14" stroke="#a8956d" stroke-width=".8"/></g>'});
@@ -1160,6 +1208,8 @@ function drawHall(){
   '<linearGradient id="lthJ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a1c1c"/><stop offset="1" stop-color="#7a2a24"/></linearGradient>'+
   '<linearGradient id="scrollg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6eed8"/><stop offset=".55" stop-color="#e6d8b4"/><stop offset="1" stop-color="#b09a6c"/></linearGradient>'+
   '<linearGradient id="shelfshade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".7"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>'+
+  '<linearGradient id="hgBrass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9ad55"/><stop offset="1" stop-color="#6e4c16"/></linearGradient>'+
+  '<radialGradient id="astGlowH"><stop offset="0" stop-color="#ffd98a" stop-opacity=".28"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>'+
   '<filter id="blur"><feGaussianBlur stdDeviation="8"/></filter>'+
   '<filter id="outline" x="-8%" y="-8%" width="116%" height="116%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="d"/><feFlood flood-color="#f2c14e"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'+
   wall+floor+
@@ -1182,7 +1232,7 @@ function drawHall(){
   '<text x="840" y="46" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#e6c88a">ДОСКА ЗАКАЗОВ</text></g></g>'+
   noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+
   // adventurers' tables (hot)
-  '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Столы авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
+  '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Хронометр, стол авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
   corner+'</g>'+
   counter+journal+shelves+guildShelf+archShelf+todLight(TOD);
 }
