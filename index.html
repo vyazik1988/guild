@@ -312,6 +312,20 @@ hr.dash{border:none;border-top:2px dashed var(--line);margin:8px 0;width:100%}
 .ttop{position:relative;flex:none;border-radius:50%;font-size:var(--fs);background:radial-gradient(circle at 50% 42%,#a26f41 0,#87592f 45%,#6b4426 80%,#5a381f 100%);
   box-shadow:0 0 0 calc(var(--fs)*.9) #4a2f19,0 0 0 calc(var(--fs)*1.05) #1d1209,0 40px 90px rgba(0,0,0,.65)}
 .ttop::before{content:"";position:absolute;inset:5%;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,rgba(0,0,0,0) 0 14px,rgba(40,20,8,.14) 15px 16px);pointer-events:none}
+.ttop .ast{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;overflow:hidden}
+.ast-gear{animation:astSpin linear infinite;transform-box:fill-box;transform-origin:center}
+.ast-orb{animation:astSpin linear infinite;transform-box:view-box;transform-origin:50% 50%}
+.ast-up{animation:astSpin linear infinite reverse;transform-box:fill-box;transform-origin:center}
+.ast-moon{animation:astSpin linear infinite;transform-box:fill-box;transform-origin:center}
+.ast-fig,.ast-hire,.ast-hub{transform-box:fill-box;transform-origin:center}
+.ast-orb:has(.ast-fig:hover),.ast-orb:has(.ast-fig:focus-visible),.ast-orb:has(.ast-fig:hover) .ast-up,.ast-orb:has(.ast-fig:focus-visible) .ast-up{animation-play-state:paused}
+.ast-fig,.ast-hire{cursor:pointer;outline:none}
+.ast-fig:hover>circle:nth-of-type(3),.ast-fig:focus-visible>circle:nth-of-type(3){filter:drop-shadow(0 0 10px #ffd98a)}
+.ast-fig:hover,.ast-hire:hover,.ast-fig:focus-visible,.ast-hire:focus-visible{filter:drop-shadow(0 0 8px rgba(255,217,138,.9))}
+.ast-star{animation:astTw 4s ease-in-out infinite}
+@keyframes astSpin{to{transform:rotate(360deg)}}
+@keyframes astTw{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.ast-gear,.ast-orb,.ast-up,.ast-moon,.ast-star{animation:none}}
 .tt-candle{position:absolute;width:2.4em;height:2.4em;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#fff4cc 0 16%,#efe6d0 19% 54%,#8a6a2a 57% 100%);box-shadow:0 0 3em 1.6em rgba(255,207,107,.33)}
 .tt-mug{position:absolute;width:3.2em;height:3.2em;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,#f3e6cf 0 54%,#8a5a2b 57% 100%);border:2px solid #1d1209}
 .tt-mug::after{content:"";position:absolute;right:-1.15em;top:33%;width:1.1em;height:.9em;border:.32em solid #5a3a1a;border-left:none;border-radius:0 .6em .6em 0}
@@ -1544,7 +1558,7 @@ function sceneIn(s){
     const F=el.getBoundingClientRect(),th=Math.acos(Math.min(1,T.height/T.width))*180/Math.PI;
     s._from="translate("+(T.left+T.width/2-(F.left+F.width/2))+"px,"+(T.top+T.height/2-(F.top+F.height/2))+"px) scale("+(T.width/F.width)+") rotateX("+th.toFixed(1)+"deg)";
     hideInCam(s,true);
-    return el.animate([{transform:s._from},{transform:"none"}],{duration:D(440),easing:"cubic-bezier(.3,.7,.25,1)"}).finished;
+    return el.animate([{transform:s._from},{transform:"none"}],{duration:D(440),easing:"cubic-bezier(.3,.7,.25,1)"}).finished.then(()=>stage===s&&!s._closing?astroOpen(el):null);
   }
   buildBook(s);
   const book=ov.querySelector(".book"),cover=book.querySelector(".cover"),Rf=cover.getBoundingClientRect(),B=book.getBoundingClientRect(),sx=T.width/Rf.width;
@@ -1569,7 +1583,7 @@ function closeScene(){
   }else if(book&&s._from){
     p=closeBookAnim(s,book,s._closedT,"translate(0px,0px) scale(1) rotateX(0deg)")
       .then(()=>book.animate([{transform:s._closedT},{transform:s._from}],{duration:D(320),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished);
-  }else if(el&&s._from)p=el.animate([{transform:"none"},{transform:s._from}],{duration:D(330),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished;
+  }else if(el&&s._from)p=astroClose(el).then(()=>el.animate([{transform:"none"},{transform:s._from}],{duration:D(330),easing:"cubic-bezier(.5,0,.75,.3)",fill:"forwards"}).finished);
   p.catch(()=>{}).then(()=>{ov.innerHTML="";hideInCam(s,false);
       veil.animate([{opacity:+getComputedStyle(veil).opacity||0},{opacity:0}],{duration:D(180),fill:"forwards"});
       s.querySelector(".stage-dim").animate([{opacity:1},{opacity:0}],{duration:D(320),fill:"forwards"});
@@ -1580,22 +1594,119 @@ function closeScene(){
 
 /* table seen from above, adventurers' dossiers on it */
 function sizeTable(el){const d=Math.min(innerWidth-24,innerHeight-84,880);el.style.width=el.style.height=d+"px";el.style.setProperty("--fs",Math.max(9.5,d*.0185).toFixed(1)+"px")}
+/* ---------- the table «Хронометр»: a brass astrolabe hidden under the tabletop ---------- */
+const AST_DAYS=Math.round((Date.parse(GUILD_CLOSE)-Date.parse(GUILD_OPEN))/864e5);
+const astAng=day=>{const d=Math.round((Date.parse(day)-Date.parse(GUILD_OPEN))/864e5);return -90+15+Math.max(0,Math.min(AST_DAYS,d))/AST_DAYS*330};
+const pol=(r,deg)=>{const a=deg*Math.PI/180;return[r*Math.cos(a),r*Math.sin(a)]};
+const f1=v=>v.toFixed(1);
+function gearPath(r,teeth,depth){
+  let d="";const st=Math.PI*2/teeth;
+  for(let k=0;k<teeth;k++){const a=k*st,pts=[[r-depth,a],[r,a+st*.18],[r,a+st*.5],[r-depth,a+st*.68]];
+    pts.forEach(([rr,aa],m)=>{d+=(k===0&&m===0?"M":"L")+f1(rr*Math.cos(aa))+" "+f1(rr*Math.sin(aa))})}
+  return d+"Z";
+}
+function gear(x,y,r,teeth,dur,rev){
+  return '<g transform="translate('+x+' '+y+')"><g class="ast-gear" style="animation-duration:'+dur+'s'+(rev?';animation-direction:reverse':'')+'">'+
+    '<path d="'+gearPath(r,teeth,Math.max(6,r*.16))+'" fill="url(#astBrassD)" stroke="#3b2a12" stroke-width="2"/>'+
+    '<circle r="'+f1(r*.62)+'" fill="none" stroke="#3b2a12" stroke-width="2" opacity=".6"/>'+
+    [0,1,2,3,4].map(k=>{const[a,b]=pol(r*.38,k*72);return '<circle cx="'+f1(a)+'" cy="'+f1(b)+'" r="'+f1(r*.12)+'" fill="#0d1120"/>'}).join("")+
+    '<circle r="'+f1(r*.14)+'" fill="#e8c77a" stroke="#3b2a12" stroke-width="2"/></g></g>';
+}
+function astroSvg(){
+  const roster=rosterSorted(),n=roster.length,hire=canWrite&&n<MAX_ADVS,slots=n+(hire?1:0);
+  const R0=150,R1=330,radii=slots<=1?[240]:Array.from({length:slots},(_,i)=>R0+(R1-R0)*i/(slots-1));
+  const td=today(),tA=astAng(td),left=Math.max(0,Math.round((Date.parse(GUILD_CLOSE)-Date.parse(td))/864e5));
+  const {L,rk}=lvlRank();
+  let o='<svg class="ast" viewBox="-500 -500 1000 1000" aria-hidden="false" role="group" aria-label="Хронометр: механизм гильдии">'+
+  '<defs><radialGradient id="astPlate"><stop offset="0" stop-color="#1e2a44"/><stop offset=".7" stop-color="#121a2e"/><stop offset="1" stop-color="#090d18"/></radialGradient>'+
+  '<linearGradient id="astBrass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d58e"/><stop offset=".45" stop-color="#c9973f"/><stop offset="1" stop-color="#7a5418"/></linearGradient>'+
+  '<linearGradient id="astBrassD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b98a3c"/><stop offset="1" stop-color="#5e4012"/></linearGradient>'+
+  '<radialGradient id="astWood" cx=".5" cy=".42"><stop offset="0" stop-color="#a26f41"/><stop offset=".45" stop-color="#87592f"/><stop offset=".8" stop-color="#6b4426"/><stop offset="1" stop-color="#5a381f"/></radialGradient>'+
+  '<clipPath id="astClip"><circle r="500"/></clipPath><clipPath id="astPClip"><circle r="31"/></clipPath></defs>'+
+  '<g class="ast-mech">'+
+    '<circle r="500" fill="url(#astPlate)"/>'+
+    /* faint star field engraved in the plate */
+    Array.from({length:46},(_,k)=>{const[a,b]=pol(60+((k*97)%380),k*137.5);return '<circle cx="'+f1(a)+'" cy="'+f1(b)+'" r="'+(k%5?1.1:1.8)+'" fill="#cfe0ff" opacity="'+(k%3?.25:.45)+'"/>'}).join("")+
+    /* gears peeking under the calendar ring */
+    gear(-372,-250,92,18,40,false)+gear(-262,-372,58,12,24.4,true)+gear(380,240,104,20,46,true)+gear(268,376,54,11,25.3,false)+gear(395,-200,60,12,28,false)+
+    /* orbits */
+    radii.map((r,i)=>'<circle class="ast-orbit" r="'+f1(r)+'" fill="none" stroke="#c9973f" stroke-opacity="'+(i<n?.38:.22)+'" stroke-width="1.6"'+(i<n?'':' stroke-dasharray="6 9"')+'/>').join("")+
+    /* finished quests become stars at the day they were done */
+    quests.filter(q=>q.status==="done"&&q.doneAt).map((q,k)=>{const a=astAng(q.doneAt.slice(0,10)),rr=R1+40+RANKS.indexOf(q.rank)*9,[x,y]=pol(rr,a),c=isRat(q)?RAT_C:advColor(advById(q.adv))||"#e8c77a";
+      return '<g class="ast-star" transform="translate('+f1(x)+' '+f1(y)+')" style="animation-delay:'+((k*.73)%4).toFixed(2)+'s"><title>'+esc(q.title)+' · '+esc(qAdv(q)?.name||"")+'</title>'+
+        '<path d="M0 -9 L2.2 -2.2 L9 0 L2.2 2.2 L0 9 L-2.2 2.2 L-9 0 L-2.2 -2.2Z" fill="'+c+'"/><circle r="2.2" fill="#fff8e0"/></g>'}).join("")+
+    /* calendar ring */
+    '<circle r="456" fill="none" stroke="url(#astBrass)" stroke-width="44"/>'+
+    '<circle r="434" fill="none" stroke="#3b2a12" stroke-width="2"/><circle r="478" fill="none" stroke="#3b2a12" stroke-width="2"/>'+
+    '<path d="M'+pol(456,astAng(GUILD_OPEN)).map(f1).join(" ")+' A456 456 0 '+(tA-astAng(GUILD_OPEN)>180?1:0)+' 1 '+pol(456,tA).map(f1).join(" ")+'" fill="none" stroke="#fff1c4" stroke-opacity=".35" stroke-width="40"/>'+
+    Array.from({length:AST_DAYS+1},(_,d)=>{const day=shiftDay(GUILD_OPEN,d),a=astAng(day),dt=new Date(day+"T12:00:00Z"),wk=dt.getUTCDay()===1,m1=dt.getUTCDate()===1,[x1,y1]=pol(436,a),[x2,y2]=pol(m1?470:wk?458:446,a);
+      return '<line x1="'+f1(x1)+'" y1="'+f1(y1)+'" x2="'+f1(x2)+'" y2="'+f1(y2)+'" stroke="#3b2a12" stroke-width="'+(m1?3:wk?2:1)+'"/>'}).join("")+
+    [["2026-11-01","НОЯ"],["2026-12-01","ДЕК"],["2027-01-01","ЯНВ"],["2027-02-01","ФЕВ"],[GUILD_OPEN,"ОКТ"]].map(([d,t])=>{const a=astAng(shiftDay(d,d===GUILD_OPEN?3:8)),[x,y]=pol(458,a);
+      return '<text x="'+f1(x)+'" y="'+f1(y)+'" transform="rotate('+f1(a+90)+' '+f1(x)+' '+f1(y)+')" text-anchor="middle" dominant-baseline="middle" font-family="Russo One" font-size="15" fill="#3b2a12">'+t+'</text>'}).join("")+
+    '<g transform="translate(0 -456)"><rect x="-58" y="-17" width="116" height="34" rx="6" fill="#1a1208" stroke="#e8c77a" stroke-width="2"/><text y="6" text-anchor="middle" font-family="Exo 2" font-weight="700" font-size="16" fill="#f3d58e">'+(left?"ещё "+left+" дн.":"финал")+'</text></g>'+
+    /* today's hand */
+    '<g class="ast-hand" transform="rotate('+f1(tA)+')"><path d="M-14 0 L60 -5 L420 0 L60 5Z" fill="url(#astBrass)" stroke="#3b2a12" stroke-width="1.5"/><path d="M420 0 L404 -12 L440 0 L404 12Z" fill="#f3d58e" stroke="#3b2a12" stroke-width="1.5"/></g>'+
+    /* centre: the guild */
+    '<circle r="78" fill="url(#astBrass)" stroke="#3b2a12" stroke-width="3"/><circle r="64" fill="#141c30" stroke="#3b2a12" stroke-width="2"/>'+
+    '<text y="-14" text-anchor="middle" font-family="Exo 2" font-size="15" fill="#c9b07a">УРОВЕНЬ</text><text y="26" text-anchor="middle" font-family="Russo One" font-size="40" fill="#f3d58e">'+L.level+'</text>'+
+    '<text y="48" text-anchor="middle" font-family="Exo 2" font-weight="700" font-size="13" fill="#c9b07a">РАНГ '+rk+'</text>';
+  /* adventurers on their orbits; the orbit slowly turns, the figure stays upright */
+  roster.forEach((a,i)=>{const r=radii[i],start=-150+i*118,dur=[160,230,300,380][i]||300,act=activeOf(a)[0],c=advColor(a),p=act?progressOf(act):0;
+    o+='<g class="ast-orb" style="animation-duration:'+dur+'s"><g transform="rotate('+start+')"><g transform="translate('+r+' 0)"><g transform="rotate('+(-start)+')">'+
+      '<g class="ast-up" style="animation-duration:'+dur+'s">'+
+      '<g class="ast-fig" data-dossier="'+esc(a.id)+'" tabindex="0" role="button" aria-label="Досье: '+esc(a.name)+'"><title>'+esc(a.name)+(act?' · '+esc(act.title):' · свободен')+'</title>'+
+        '<circle r="110" fill="none"/><circle r="54" fill="transparent"/>'+
+        (act?'<circle r="47" fill="none" stroke="'+PAPER_RC[act.rank]+'" stroke-opacity=".25" stroke-width="6"/><circle r="47" fill="none" stroke="'+PAPER_RC[act.rank]+'" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+f1(p*295.3)+' 400" transform="rotate(-90)"/>'+
+          '<g class="ast-moon" style="animation-duration:'+(act.rank==="S"?5:act.rank==="A"?6:8)+'s"><circle r="71" fill="none"/><circle cx="62" r="12" fill="'+PAPER_RC[act.rank]+'" stroke="#f3d58e" stroke-width="2"/><text x="62" y="4.5" text-anchor="middle" font-family="Exo 2" font-weight="700" font-size="13" fill="#fff">'+act.rank+'</text></g>':'')+
+        '<circle r="38" fill="url(#astBrass)" stroke="#3b2a12" stroke-width="2.5"/>'+
+        '<g clip-path="url(#astPClip)"><svg x="-31" y="-31" width="62" height="62" viewBox="0 0 64 64">'+portrait(a).replace(/^<svg[^>]*>/,"").replace(/<\/svg>$/,"")+'</svg></g>'+
+        '<circle r="31" fill="none" stroke="#3b2a12" stroke-width="2"/>'+
+        '<g transform="translate(0 64)"><rect x="-52" y="-14" width="104" height="26" rx="13" fill="#1a1208" fill-opacity=".85" stroke="'+c+'" stroke-width="2"/><text y="5" text-anchor="middle" font-family="Exo 2" font-weight="700" font-size="15" fill="#f3e6c8">'+esc(a.name)+'</text></g>'+
+      '</g></g></g></g></g></g>';
+  });
+  if(hire){const r=radii[n],[x,y]=pol(r,60);
+    o+='<g transform="translate('+f1(x)+' '+f1(y)+')"><g class="ast-hire" data-hire="1" tabindex="0" role="button" aria-label="Нанять авантюриста"><circle r="72" fill="none"/><circle r="34" fill="#141c30" stroke="#c9973f" stroke-width="2" stroke-dasharray="5 6"/><path d="M-12 0H12M0 -12V12" stroke="#e8c77a" stroke-width="4" stroke-linecap="round"/><text y="56" text-anchor="middle" font-family="Exo 2" font-weight="700" font-size="14" fill="#c9b07a">нанять</text></g></g>';}
+  o+='</g>'+
+  /* the wooden tabletop: eight blades that open like a camera iris */
+  '<g class="ast-iris" clip-path="url(#astClip)">'+
+    Array.from({length:8},(_,k)=>{const a0=k*45-6,a1=(k+1)*45+6,[x0,y0]=pol(560,a0),[x1,y1]=pol(560,a1),[px,py]=pol(500,k*45);
+      return '<g class="ast-blade" data-px="'+f1(px)+'" data-py="'+f1(py)+'"><path d="M0 0 L'+f1(x0)+' '+f1(y0)+' A560 560 0 0 1 '+f1(x1)+' '+f1(y1)+'Z" fill="url(#astWood)" stroke="#2a180c" stroke-width="3"/>'+
+        '<path d="M0 0 L'+f1(x0)+' '+f1(y0)+'" stroke="#c48a52" stroke-opacity=".35" stroke-width="2"/>'+
+        [120,200,280,360,440].map(r=>{const[ax,ay]=pol(r,a0+4),[bx,by]=pol(r,a1-4);return '<path d="M'+f1(ax)+' '+f1(ay)+' A'+r+' '+r+' 0 0 1 '+f1(bx)+' '+f1(by)+'" fill="none" stroke="#2a1408" stroke-opacity=".16" stroke-width="2"/>'}).join("")+'</g>'}).join("")+
+    '<g class="ast-hub"><circle r="26" fill="url(#astBrass)" stroke="#3b2a12" stroke-width="3"/><circle r="9" fill="#3b2a12"/></g>'+
+  '</g></svg>';
+  return o;
+}
+/* opening: blades swing out around their rim pivots, the mechanism rises */
+function astroOpen(el){
+  const blades=[...el.querySelectorAll(".ast-blade")],mech=el.querySelector(".ast-mech"),hub=el.querySelector(".ast-hub");
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){blades.forEach(b=>b.style.display="none");if(hub)hub.style.display="none";return Promise.resolve()}
+  const anims=blades.map((b,k)=>{b.style.transformBox="view-box";b.style.transformOrigin=(+b.dataset.px+500)+"px "+(+b.dataset.py+500)+"px";
+    return b.animate([{transform:"rotate(0deg)"},{transform:"rotate(78deg)"}],{duration:D(720),delay:D(80),easing:"cubic-bezier(.55,0,.25,1)",fill:"forwards"})});
+  if(hub)hub.animate([{opacity:1,transform:"scale(1)"},{opacity:0,transform:"scale(.2)"}],{duration:D(260),fill:"forwards"});
+  mech.style.transformBox="view-box";mech.style.transformOrigin="500px 500px";
+  mech.animate([{transform:"scale(.86)",filter:"brightness(.35)"},{transform:"scale(1)",filter:"brightness(1)"}],{duration:D(820),delay:D(120),easing:"cubic-bezier(.2,.8,.2,1)",fill:"backwards"});
+  el.querySelectorAll(".ast-fig,.ast-hire").forEach((f,i)=>f.animate([{opacity:0,transform:"scale(.4)"},{opacity:1,transform:"scale(1)"}],{duration:D(380),delay:D(520+i*110),easing:"cubic-bezier(.3,1.5,.5,1)",fill:"backwards"}));
+  el.querySelectorAll(".ast-star").forEach((f,i)=>f.animate([{opacity:0},{opacity:1}],{duration:D(300),delay:D(600+(i%12)*40),fill:"backwards"}));
+  return Promise.all(anims.map(a=>a.finished)).then(()=>{blades.forEach(b=>b.style.visibility="hidden");if(hub)hub.style.visibility="hidden"}).catch(()=>{});
+}
+function astroClose(el){
+  const blades=[...el.querySelectorAll(".ast-blade")],hub=el.querySelector(".ast-hub");if(!blades.length)return Promise.resolve();
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return Promise.resolve();
+  blades.forEach(b=>{b.style.visibility="";b.style.display=""});if(hub){hub.style.visibility="";hub.style.display=""}
+  const anims=blades.map(b=>{b.getAnimations().forEach(a=>a.cancel());b.style.transformBox="view-box";b.style.transformOrigin=(+b.dataset.px+500)+"px "+(+b.dataset.py+500)+"px";
+    return b.animate([{transform:"rotate(78deg)"},{transform:"rotate(0deg)"}],{duration:D(420),easing:"cubic-bezier(.5,0,.6,1)",fill:"forwards"})});
+  if(hub){hub.getAnimations().forEach(a=>a.cancel());hub.animate([{opacity:0},{opacity:1}],{duration:D(200),delay:D(260),fill:"backwards"})}
+  return Promise.all(anims.map(a=>a.finished)).catch(()=>{});
+}
 function fillTable(){
   const s=stage;if(!s||s._kind!=="table"||s._closing)return;const el=s.querySelector(".ttop");if(!el)return;
-  const cards=rosterSorted().map(a=>({a}));if(canWrite&&advs.length<MAX_ADVS)cards.push({hire:1});
-  const L={1:[[50,52,-2]],2:[[31,52,-4],[69,52,4]],3:[[29,38,-5],[71,38,4],[50,73,-2]],4:[[29,33,-5],[71,31,4],[30,71,3],[70,71,-4]]}[cards.length]||[];
-  el.innerHTML='<span class="tt-candle" style="left:50%;top:11%"></span><span class="tt-mug" style="left:88%;top:52%"></span>'+
-    (cards.length?'':'<span class="tt-empty">За столом пусто</span>')+
-    cards.map((c,i)=>{const[x,y,r]=L[i];
-      if(c.hire)return '<button class="dos dos-new" data-hire="1" data-rot="'+r+'" style="left:'+x+'%;top:'+y+'%;--r:'+r+'deg" aria-label="Нанять авантюриста"><span class="plus">+</span><span>Нанять</span></button>';
-      const a=c.a,st=advStats(a),act=activeOf(a);
-      return '<button class="dos" data-dossier="'+esc(a.id)+'" data-rot="'+r+'" style="left:'+x+'%;top:'+y+'%;--r:'+r+'deg;--c:'+advColor(a)+'" aria-label="Досье: '+esc(a.name)+'">'+
-        '<span class="dos-tab"></span><span class="dos-head">'+portrait(a)+'<span><b>'+esc(a.name)+'</b><i>'+esc(advCls(a).n)+'</i></span></span>'+
-        '<span class="dos-meta">Ранг '+st.rank+' · '+st.xp+' XP</span>'+
-        '<span class="dos-st '+(act.length?"busy":"free")+'">'+(act.length?"На задании: "+esc(act.map(q=>q.title).join(", ")):"Свободен")+'</span>'+
-        '<span class="dos-area">'+esc(a.area||advCls(a).area)+'</span></button>'}).join("");
-  el.querySelectorAll("[data-dossier]").forEach(b=>{b.onclick=()=>openSheet(b.dataset.dossier,b,"view","adv");if(sheet&&sheet._kind==="adv"&&sheet._id===b.dataset.dossier)b.style.visibility="hidden"});
-  const h=el.querySelector("[data-hire]");if(h){h.onclick=()=>openSheet(null,h,"hire","adv");if(sheet&&sheet._kind==="adv"&&sheet._mode==="hire"&&!sheet._id)h.style.visibility="hidden"}
+  const opened=!!el.querySelector(".ast");
+  el.innerHTML=astroSvg();
+  if(opened){el.querySelectorAll(".ast-blade").forEach(b=>b.style.visibility="hidden");const hub=el.querySelector(".ast-hub");if(hub)hub.style.visibility="hidden"}
+  const go=(g,fn)=>{g.onclick=fn;g.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();fn()}}};
+  el.querySelectorAll("[data-dossier]").forEach(b=>{go(b,()=>openSheet(b.dataset.dossier,b,"view","adv"));if(sheet&&sheet._kind==="adv"&&sheet._id===b.dataset.dossier)b.style.visibility="hidden"});
+  const h=el.querySelector("[data-hire]");if(h){go(h,()=>openSheet(null,h,"hire","adv"));if(sheet&&sheet._kind==="adv"&&sheet._mode==="hire"&&!sheet._id)h.style.visibility="hidden"}
 }
 function renderNoraSheet(w){
   const paper=w.querySelector(".sheet");paper.classList.add("dirty","nora");
