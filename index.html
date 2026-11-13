@@ -1588,7 +1588,7 @@ function closeScene(){
 }
 
 /* table seen from above, adventurers' dossiers on it */
-function sizeTable(el){const d=Math.min(innerWidth-24,innerHeight-84,880);el.style.width=el.style.height=d+"px";el.style.setProperty("--fs",Math.max(9.5,d*.0185).toFixed(1)+"px")}
+function sizeTable(el){const d=Math.min(innerWidth-24,innerHeight-64);el.style.width=el.style.height=d+"px";el.style.setProperty("--fs",Math.max(9.5,d*.0185).toFixed(1)+"px")}
 /* ---------- the table «Хронометр»: a brass astrolabe hidden under the tabletop ---------- */
 const AST_DAYS=Math.round((Date.parse(GUILD_CLOSE)-Date.parse(GUILD_OPEN))/864e5);
 const astAng=day=>{const d=Math.round((Date.parse(day)-Date.parse(GUILD_OPEN))/864e5);return -90+15+Math.max(0,Math.min(AST_DAYS,d))/AST_DAYS*330};
