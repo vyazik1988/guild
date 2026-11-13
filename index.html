@@ -434,6 +434,8 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .nora-list b{flex:0 0 auto;color:#5f5a4c}.nora-list span{flex:1;min-width:0;overflow-wrap:anywhere}.nora-list i{font-style:normal;font-size:12px;color:#6b5a40}
 .rk-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.rk-row b{font-family:var(--f-num);margin-left:4px}
 @media (max-width:560px){.nora-stats{grid-template-columns:repeat(2,1fr)}}
+#hall .gob{cursor:pointer;outline:none}#hall .gob:hover .gob-b,#hall .gob:focus-visible .gob-b{filter:url(#outline)}
+.xpf{position:fixed;z-index:60;pointer-events:none;font:700 20px "Russo One",sans-serif;color:#ffe08a;text-shadow:0 2px 0 #3a2208,0 0 10px rgba(255,200,90,.7);white-space:nowrap}
 #hall .hall-gear{animation:hgSpin 9s linear infinite;transform-box:fill-box;transform-origin:center}
 #hall .hall-arm-r{animation:hgArm 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes hgArm{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
@@ -723,7 +725,7 @@ function progressOf(q){
   return q.status==="done"?1:0;
 }
 const questXP=q=>q.status!=="done"?0:(RANK_XP[q.rank]||10)+(q.kind==="checklist"?Math.min(200,(q.history||[]).filter(h=>h.delta==="✓").length)*STEP_XP:0);
-function guildXP(){return quests.reduce((s,q)=>s+questXP(q),0)+reports().length*DAILY_XP}
+function guildXP(){return quests.reduce((s,q)=>s+questXP(q),0)+reports().length*DAILY_XP+gobKills*GOB_XP}
 function levelFrom(xp,base,step){let l=1,need=base,acc=0;while(xp>=acc+need){acc+=need;l++;need=base+(l-1)*step}return{level:l,into:xp-acc,need}}
 const guildLevel=xp=>levelFrom(xp,100,25);
 const ADV_RANKS=[["E",0],["D",100],["C",450],["B",1250],["A",2700],["S",5000]];
@@ -836,12 +838,12 @@ function noraG(n){
       /* rat peeking out on the left, looking right */
       '<linearGradient id="noratail" gradientUnits="userSpaceOnUse" x1="0" y1="424" x2="0" y2="434"><stop offset="0" stop-color="#c49a92" stop-opacity="0"/><stop offset="1" stop-color="#c49a92"/></linearGradient>'+
       '<clipPath id="noraclip"><path d="M22 433 L22 411 Q23 393 41 392 Q60 393 61 411 L61 433 Z"/></clipPath>'+
-      '<g clip-path="url(#noraclip)"><g class="ratHead"><g transform="translate(53 0) scale(-1 1)">'+
+      '<g clip-path="url(#noraclip)"><g class="ratHide"><g class="ratHead"><g class="face" data-k="rat" data-sp=".45" data-rat="1"><g transform="translate(53 0) scale(-1 1)">'+
         '<ellipse cx="26" cy="424" rx="9" ry="6.5" fill="#7f7b72"/><path d="M19 421 Q12 424 15 428 Q19 429 22 427Z" fill="#8d8980"/>'+
         '<circle cx="31" cy="417" r="4" fill="#7f7b72"/><circle cx="31" cy="417" r="2.3" fill="#d79a9a"/>'+
-        '<circle cx="22.5" cy="421.5" r="1.5" fill="#0d0805"/><circle cx="22" cy="421" r=".5" fill="#fff"/>'+
+        eyeSvg(22.5,421.5,"l",2.2,2.2,1.4,.8,"#0d0805")+
         '<circle cx="14.6" cy="426" r="1.4" fill="#e3a0a6"/>'+
-        '<path d="M16 425l-7 -2M16 427l-7 1M17 428l-6 3" stroke="#d9d4c8" stroke-width=".5" opacity=".8"/></g></g></g>'+
+        '<path d="M16 425l-7 -2M16 427l-7 1M17 428l-6 3" stroke="#d9d4c8" stroke-width=".5" opacity=".8"/></g></g></g></g></g>'+
     '</g>'+
   '</g>';
 }
@@ -1056,8 +1058,10 @@ function drawHall(){
     return '<path d="M'+(x-27)+' '+(y+74)+'Q'+(x-27)+' '+(y+20)+' '+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'Z" fill="'+c+'" '+OL+'/>'+
       '<path d="M'+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'H'+(x+10)+'Q'+(x+12)+' '+(y+32)+' '+x+' '+(y+15)+'Z" fill="#000" opacity=".22"/>'+
       '<path d="M'+(x-9)+' '+(y+17)+'L'+x+' '+(y+34)+'L'+(x+9)+' '+(y+17)+'" fill="none" stroke="#1d1209" stroke-width="1.4" opacity=".6"/><circle cx="'+x+'" cy="'+(y+40)+'" r="2.6" fill="#c9a24a"/>'+
-      '<circle cx="'+x+'" cy="'+y+'" r="15" fill="#e3c9a6" stroke="#1d1209" stroke-width="1.2"/><circle cx="'+(x-5)+'" cy="'+(y+1)+'" r="1.6" fill="#2b2116"/><circle cx="'+(x+5)+'" cy="'+(y+1)+'" r="1.6" fill="#2b2116"/>'+
-      '<path d="M'+(x-4)+' '+(y+7)+'q4 3 8 0" stroke="#8a5a3a" stroke-width="1.2" fill="none"/>'+head+
+      '<g class="face" data-k="adv-'+esc(a.id)+'" data-sp="'+({chron:.22,eng:.38,sci:.11}[a.cls]||.25)+'">'+
+      '<circle cx="'+x+'" cy="'+y+'" r="15" fill="#e3c9a6" stroke="#1d1209" stroke-width="1.2"/>'+eyeSvg(x-5,y+1,"l",2.9,3.2,1.6,1.3)+eyeSvg(x+5,y+1,"r",2.9,3.2,1.6,1.3)+
+      '<path class="mth mth-n" d="M'+(x-4)+' '+(y+7)+'q4 3 8 0" stroke="#8a5a3a" stroke-width="1.2" fill="none"/>'+
+      '<ellipse class="mth mth-o" cx="'+x+'" cy="'+(y+8.2)+'" rx="1.9" ry="2.3" fill="#5a2a1a" style="display:none"/></g>'+head+
       '<text x="'+x+'" y="'+(y-30)+'" text-anchor="middle" font-family="Exo 2" font-weight="600" font-size="13" fill="#f3e6cf" stroke="#120b06" stroke-width="3" paint-order="stroke">'+esc(a.name)+'</text>';
   };
   const table=(cx,cy,rx,ry)=>
@@ -1183,7 +1187,7 @@ function drawHall(){
 
   /* ---- window, banner, door, lanterns ---- */
   const windowG='<rect x="286" y="54" width="208" height="8" rx="4" fill="#5a3a20"/>'+
-    '<rect x="294" y="64" width="192" height="182" fill="#120b06"/>'+todSky(TOD)+
+    '<rect x="294" y="64" width="192" height="182" fill="#120b06"/>'+todSky(TOD)+'<g clip-path="url(#winclip)">'+gobsSvg()+'</g>'+
     '<line x1="390" y1="70" x2="390" y2="240" stroke="#3d2816" stroke-width="8"/><line x1="300" y1="155" x2="480" y2="155" stroke="#3d2816" stroke-width="8"/>'+
     '<rect x="300" y="70" width="180" height="170" fill="none" stroke="#4a311c" stroke-width="10"/>'+
     '<rect x="284" y="240" width="212" height="14" fill="#5a3a20" '+OL+'/>'+
@@ -2040,7 +2044,7 @@ const SPREADS={
   },
   status(sid){
     if(sid==="rules")return{left:'<div class="bk-h">Правила опыта</div><table class="bk-t">'+RANKS.map(r=>'<tr><td><span class="rk rk-'+r+'">'+r+'</span></td><td>'+RANK_HINT[r]+'</td><td class="num">'+RANK_XP[r]+' XP</td></tr>').join("")+'</table>'+
-        '<p class="small">Выполненный пункт заказа: +'+STEP_XP+' XP.<br>Опыт за заказ и его пункты начисляется, когда сданный заказ подтверждён в архиве.<br>Запись в журнале смены: +'+DAILY_XP+' XP.<br>Авантюрист получает опыт своих заказов и растёт в ранге: '+ADV_RANKS.slice(1).map(r=>r[0]+' с '+r[1]+' XP').join(', ')+'.</p>',
+        '<p class="small">Выполненный пункт заказа: +'+STEP_XP+' XP.<br>Опыт за заказ и его пункты начисляется, когда сданный заказ подтверждён в архиве.<br>Запись в журнале смены: +'+DAILY_XP+' XP.<br>Прогнанный из окна гоблин: +'+GOB_XP+' XP.<br>Авантюрист получает опыт своих заказов и растёт в ранге: '+ADV_RANKS.slice(1).map(r=>r[0]+' с '+r[1]+' XP').join(', ')+'.</p>',
       right:'<div class="bk-h">Ранги гильдии</div><table class="bk-t">'+[["E",1],["D",5],["C",10],["B",20],["A",35],["S",50]].map(([r,l])=>'<tr><td><span class="rk rk-'+r+'">'+r+'</span></td><td>'+GUILD_TITLE[r]+'</td><td class="num">с '+l+' ур.</td></tr>').join("")+'</table>'+
         '<div class="bk-nav"><button class="bk-link" data-back="main">← К статусу</button><span></span></div>'};
     const xp=guildXP(),{L,rk}=lvlRank(),done=quests.filter(q=>q.status==="done"),withDl=done.filter(q=>q.deadline);
@@ -2048,7 +2052,7 @@ const SPREADS={
     return{left:'<div class="bk-crest">'+CREST+'</div><div class="bk-h c">Гильдия искателей приключений</div><div class="bk-big">Уровень '+L.level+'</div><div class="c">Ранг '+rk+' · '+GUILD_TITLE[rk]+'</div>'+
         '<div class="bigbar"><i style="width:'+(L.into/L.need*100).toFixed(1)+'%"></i></div><div class="small c">'+L.into+' / '+L.need+' XP · всего '+xp+'</div><div class="small c muted">До следующего уровня: '+(L.need-L.into)+' XP</div>'+
         '<table class="bk-t" style="margin-top:auto">'+kvRows([["Открытие гильдии",ru(GUILD_OPEN)],["Закрытие гильдии",ru(GUILD_CLOSE)]])+'</table>',
-      right:'<div class="bk-h">Показатели</div><table class="bk-t">'+kvRows([["Заказов выполнено",done.length],["В работе",quests.filter(q=>q.status==="active").length],["Ждут подтверждения",quests.filter(q=>q.status==="review").length],["На доске",quests.filter(q=>q.status==="board").length],["Записей в журнале",reports().length]])+'</table>'+
+      right:'<div class="bk-h">Показатели</div><table class="bk-t">'+kvRows([["Заказов выполнено",done.length],["В работе",quests.filter(q=>q.status==="active").length],["Ждут подтверждения",quests.filter(q=>q.status==="review").length],["На доске",quests.filter(q=>q.status==="board").length],["Записей в журнале",reports().length],["Опыт за прогнанных гоблинов",gobKills*GOB_XP+" XP"]])+'</table>'+
         '<div class="bk-h s">Выполнено по рангам</div><div class="bk-ranks">'+RANKS.map(r=>'<span><span class="rk rk-'+r+'">'+r+'</span>'+done.filter(q=>q.rank===r).length+'</span>').join("")+'</div>'+
         '<div class="bk-nav"><span></span><button class="bk-link" data-turn="rules">Правила опыта →</button></div>'};
   },
@@ -2466,8 +2470,136 @@ function ringBell(){
   setTimeout(()=>{b.classList.add("fade");setTimeout(()=>b.remove(),1000)},3000);
   const g=$("#hall .bell");if(g){g.classList.remove("ring");void g.getBoundingClientRect();g.classList.add("ring")}
 }
-$("#hall").addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-bell]"))ringBell()});
-$("#hall").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.closest&&e.target.closest("[data-bell]")){e.preventDefault();ringBell();return}const t=e.target.closest&&e.target.closest("[data-open]");if((e.key==="Enter"||e.key===" ")&&t){e.preventDefault();openModal(t.dataset.open)}});
+/* ================= eyes that follow the cursor, and goblins in the window ================= */
+function eyeSvg(cx,cy,side,rx,ry,pr,reach,pc){
+  return '<g class="eyeg" data-cx="'+cx+'" data-cy="'+cy+'"><ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="#fffaf0" stroke="#1d1209" stroke-width=".5"/>'+
+    '<g class="trk" data-side="'+side+'" data-cx="'+cx+'" data-cy="'+cy+'" data-r="'+reach+'"><circle cx="'+cx+'" cy="'+cy+'" r="'+pr+'" data-pr="'+pr+'" fill="'+(pc||"#2b2116")+'"/></g></g>';
+}
+const GOB_XP=1,GOB_MS=/[?&]goblins=fast/.test(location.search)?6000:180000;
+const GOB_SLOTS=[{x:351,y:240,up:false},{x:429,y:240,up:false},{x:350,y:70,up:true}];
+let gobs=[],gobTimer=null,gobSeq=0,gobKills=0,gobKillsLocal=0;
+function gobsAlive(){return gobs.filter(g=>!g.fall)}
+function gobSchedule(){
+  if(gobTimer||gobsAlive().length>=3)return;
+  gobTimer=setTimeout(()=>{gobTimer=null;
+    const used=new Set(gobs.map(g=>g.slot)),free=[0,1,2].filter(i=>!used.has(i));
+    if(free.length&&gobsAlive().length<3){gobs.push({id:++gobSeq,slot:free[Math.floor(Math.random()*free.length)],born:performance.now(),ph:Math.random()*6});drawHall()}
+    gobSchedule()},GOB_MS);
+}
+function gobPose(g,now){
+  const S=GOB_SLOTS[g.slot],t=Math.min(1,(now-g.born)/700),rise=1-Math.pow(1-t,3),bob=Math.sin(now/650+g.ph)*1.4;
+  let x=S.x,y,rot=S.up?180:0;
+  if(S.up)y=S.y-30+rise*44+bob;else y=S.y+30-rise*51+bob;
+  if(g.scared)x+=Math.sin(now/22)*.7;
+  if(g.fall){const ft=(now-g.fall)/1000;y+=-60*ft+520*ft*ft;rot+=(S.up?-1:1)*220*ft;x+=(g.slot===1?14:-14)*ft}
+  return 'translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+rot.toFixed(1)+')';
+}
+function gobsSvg(){
+  const now=performance.now();
+  return gobs.map(g=>'<g class="gob" data-gob="'+g.id+'" tabindex="0" role="button" aria-label="Гоблин в окне. Прогнать" transform="'+gobPose(g,now)+'">'+
+    '<g class="gob-b">'+
+    '<path d="M-12 -5 L-32 -15 L-13 4Z" fill="#5c9440" stroke="#1d1209" stroke-width="1.3"/><path d="M-15 -6 L-27 -12 L-15 1Z" fill="#c98a8a" opacity=".6"/>'+
+    '<path d="M12 -5 L32 -15 L13 4Z" fill="#5c9440" stroke="#1d1209" stroke-width="1.3"/><path d="M15 -6 L27 -12 L15 1Z" fill="#c98a8a" opacity=".6"/>'+
+    '<ellipse rx="15.5" ry="14.5" fill="#6fa64a" stroke="#1d1209" stroke-width="1.4"/>'+
+    '<path d="M-12 -9 L-2.5 -6.5M12 -9 L2.5 -6.5" stroke="#1d1209" stroke-width="1.6" stroke-linecap="round"/>'+
+    '<g class="face" data-k="gob-'+g.id+'" data-sp=".3" data-gobface="'+g.id+'">'+eyeSvg(-6,-2,"l",4.6,5,2.2,2.1)+eyeSvg(6,-2,"r",4.6,5,2.2,2.1)+'</g>'+
+    '<path d="M-1.5 3 Q0 6 1.5 3" fill="#4e8236" stroke="#1d1209" stroke-width=".8"/>'+
+    '<path d="M-8 7 Q0 13 8 7 Q0 10 -8 7Z" fill="#2a1408" stroke="#1d1209" stroke-width=".8"/><path d="M-5 8 l1.2 2.2 l1.2 -1.8M2.6 8.4 l1.2 1.8 l1.2 -2.2" fill="#fffaf0"/>'+
+    '<circle cx="-20" cy="13" r="4.2" fill="#5c9440" stroke="#1d1209" stroke-width="1.1"/><circle cx="20" cy="13" r="4.2" fill="#5c9440" stroke="#1d1209" stroke-width="1.1"/>'+
+    '</g></g>').join("");
+}
+let actx=null;
+function gobGroan(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const c=actx,t=c.currentTime+.01,p=.85+Math.random()*.35;if(c.state==="suspended")c.resume();
+    const nb=c.createBuffer(1,Math.floor(c.sampleRate*.07),c.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+    const ns=c.createBufferSource();ns.buffer=nb;const bp=c.createBiquadFilter();bp.type="bandpass";bp.frequency.value=700;const ng=c.createGain();ng.gain.value=.55;ns.connect(bp);bp.connect(ng);ng.connect(c.destination);ns.start(t);
+    const o=c.createOscillator();o.type="sawtooth";o.frequency.setValueAtTime(240*p,t+.04);o.frequency.exponentialRampToValueAtTime(330*p,t+.13);o.frequency.exponentialRampToValueAtTime(90*p,t+.6);
+    const lfo=c.createOscillator();lfo.frequency.value=13;const lg=c.createGain();lg.gain.value=16*p;lfo.connect(lg);lg.connect(o.frequency);
+    const f1=c.createBiquadFilter();f1.type="bandpass";f1.frequency.value=520;f1.Q.value=3;const f2=c.createBiquadFilter();f2.type="bandpass";f2.frequency.value=980;f2.Q.value=4;
+    const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.5,t+.08);g.gain.exponentialRampToValueAtTime(.001,t+.66);
+    o.connect(f1);o.connect(f2);f1.connect(g);f2.connect(g);g.connect(c.destination);o.start(t+.03);lfo.start(t);o.stop(t+.7);lfo.stop(t+.7);
+  }catch(e){}
+}
+function floatXP(x,y,txt){
+  const d=document.createElement("div");d.className="xpf";d.textContent=txt;d.style.left=x+"px";d.style.top=y+"px";document.body.appendChild(d);
+  d.animate([{opacity:0,transform:"translate(-50%,-50%) scale(.7)"},{opacity:1,transform:"translate(-50%,-90%) scale(1.05)",offset:.15},{opacity:1,transform:"translate(-50%,-150%)",offset:.55},{opacity:0,transform:"translate(-50%,-230%)"}],{duration:1500,easing:"ease-out"}).finished.then(()=>d.remove(),()=>d.remove());
+}
+function whackGob(el,cx,cy){
+  const id=+el.dataset.gob,g=gobs.find(x=>x.id===id);if(!g||g.fall)return;
+  g.fall=performance.now();gobGroan();
+  if(cx==null){const r=el.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2}
+  floatXP(cx,cy,"+"+GOB_XP+" XP");
+  EYE.focus={gob:id,until:performance.now()+1500};
+  if(canWrite){gobKillsLocal=gobKills+1;gobKills=gobKillsLocal;db.doc("meta/goblins").set({count:gobKills,at:new Date().toISOString()}).catch(fail);renderAll()}
+  setTimeout(()=>{gobs=gobs.filter(x=>x!==g);const e=document.querySelector('#hall [data-gob="'+id+'"]');if(e)e.remove();gobSchedule()},950);
+}
+/* --- eye engine: one loop, moods decided from what the cursor does --- */
+const EYE={pt:null,inside:false,last:0,trail:[],dizzy:0,focus:null,cur:new Map(),blink:new Map(),wander:new Map(),hide:0,ratFar:0};
+addEventListener("pointermove",e=>{const now=performance.now(),p=EYE.pt;
+  if(p){EYE.trail.push([now,Math.hypot(e.clientX-p.x,e.clientY-p.y)]);while(EYE.trail.length&&now-EYE.trail[0][0]>700)EYE.trail.shift();
+    const run=EYE.trail.reduce((s,v)=>s+v[1],0);if(run>2600&&now>EYE.dizzy)EYE.dizzy=now+2000}
+  EYE.pt={x:e.clientX,y:e.clientY};EYE.last=now},{passive:true});
+addEventListener("pointerdown",e=>{EYE.pt={x:e.clientX,y:e.clientY};EYE.last=performance.now()},{passive:true});
+document.addEventListener("pointerleave",()=>{EYE.pt=null});
+const scr=(el,x,y)=>{const m=el.getScreenCTM();return m?{x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f,m}:null};
+function eyeTick(now){
+  requestAnimationFrame(eyeTick);
+  const hall=document.getElementById("hall");if(!hall||document.hidden||stage)return;
+  const HM=hall.getScreenCTM();if(!HM)return;const unit=Math.hypot(HM.a,HM.b);
+  const R=hall.getBoundingClientRect(),pt=EYE.pt,inside=!!pt&&pt.x>=R.left&&pt.x<=R.right&&pt.y>=R.top&&pt.y<=R.bottom;
+  const idle=inside&&now-EYE.last>7000,dizzy=inside&&now<EYE.dizzy,focus=EYE.focus&&now<EYE.focus.until?EYE.focus:null;
+  /* goblin poses */
+  hall.querySelectorAll(".gob").forEach(el=>{const g=gobs.find(x=>x.id===+el.dataset.gob);if(!g)return;
+    if(inside){const c=scr(el,0,0);g.scared=!!c&&!g.fall&&Math.hypot(pt.x-c.x,pt.y-c.y)<46*unit}else g.scared=false;
+    el.setAttribute("transform",gobPose(g,now))});
+  const faces=[...hall.querySelectorAll(".face")];
+  const centre=f=>{const es=[...f.querySelectorAll(".trk")];let x=0,y=0,n=0;es.forEach(t=>{const c=scr(t.parentNode,+t.dataset.cx,+t.dataset.cy);if(c){x+=c.x;y+=c.y;n++}});return n?{x:x/n,y:y/n}:null};
+  const centres=new Map(faces.map(f=>[f,centre(f)]));
+  /* rat hides when the cursor comes close to the hole */
+  const rat=hall.querySelector(".ratHide");
+  if(rat){const h=scr(hall,41,418),near=inside&&h&&Math.hypot(pt.x-h.x,pt.y-h.y)<64*unit;
+    if(near)EYE.ratFar=now+900;const want=now<EYE.ratFar?1:0;EYE.hide+=(want-EYE.hide)*(want?.35:.08);
+    rat.setAttribute("transform","translate("+(-EYE.hide*30).toFixed(2)+" 0)")}
+  faces.forEach(f=>{
+    const k=f.dataset.k,sp=+f.dataset.sp||.25,c=centres.get(f),isGob=!!f.dataset.gobface,gob=isGob?gobs.find(g=>g.id===+f.dataset.gobface):null;
+    let target=null,mode="follow";
+    if(gob&&gob.fall)mode="dizzy";
+    else if(focus&&!isGob){const ge=hall.querySelector('[data-gob="'+focus.gob+'"]'),gc=ge&&scr(ge,0,0);if(gc){target=gc;mode="look"}}
+    if(mode==="follow"){
+      if(!inside)mode="away";
+      else if(dizzy)mode="dizzy";
+      else if(idle){mode="look";let w=EYE.wander.get(k);
+        if(!w||now>w.until){const opts=[...centres.entries()].filter(([g])=>g!==f).map(([,v])=>v).filter(Boolean);
+          const alive=hall.querySelectorAll(".gob");alive.forEach(a=>{const p=scr(a,0,0);if(p){opts.push(p);opts.push(p)}});
+          opts.push(scr(hall,220,360),scr(hall,390,160),null);w={p:opts[Math.floor(Math.random()*opts.length)],until:now+1400+Math.random()*2600};EYE.wander.set(k,w)}
+        target=w.p;if(!target)mode="away"}
+      else{target=pt;if(c&&Math.hypot(pt.x-c.x,pt.y-c.y)<(isGob?14:20)*unit)mode="cross"}
+    }
+    const surprised=mode==="cross"||mode==="dizzy"||(focus&&!isGob);
+    f.querySelectorAll(".mth-n").forEach(m=>m.style.display=surprised?"none":"");f.querySelectorAll(".mth-o").forEach(m=>m.style.display=surprised?"":"none");
+    /* blinking */
+    let b=EYE.blink.get(k);if(!b){b={next:now+1500+Math.random()*4000,until:0};EYE.blink.set(k,b)}
+    if(now>b.next){b.until=now+130;b.next=now+2500+Math.random()*4500}
+    const closed=now<b.until&&mode!=="dizzy";
+    f.querySelectorAll(".eyeg").forEach(eg=>{const cx=+eg.dataset.cx,cy=+eg.dataset.cy;
+      eg.setAttribute("transform",closed?"translate("+cx+" "+cy+") scale(1 .12) translate("+(-cx)+" "+(-cy)+")":"")});
+    f.querySelectorAll(".trk").forEach(t=>{
+      const r=+t.dataset.r,cx=+t.dataset.cx,cy=+t.dataset.cy,side=t.dataset.side,ek=k+side;let tx=0,ty=0;
+      const e=scr(t.parentNode,cx,cy);if(!e)return;const m=e.m,det=m.a*m.d-m.b*m.c||1;
+      const toLocal=(dx,dy)=>[(m.d*dx-m.c*dy)/det,(-m.b*dx+m.a*dy)/det];
+      if(mode==="dizzy"){const a=now/110+(side==="r"?Math.PI:0);tx=r*Math.cos(a);ty=r*Math.sin(a)}
+      else if(mode==="cross"){const[lx]=toLocal(side==="l"?1:-1,0);tx=Math.sign(lx)*r;ty=r*.25}
+      else if(mode==="away"){ty=r*.25}
+      else if(target){const dx=target.x-e.x,dy=target.y-e.y,dist=Math.hypot(dx,dy);if(dist>.5){const[lx,ly]=toLocal(dx,dy),ll=Math.hypot(lx,ly)||1,mag=r*Math.min(1,dist/(60*unit));tx=lx/ll*mag;ty=ly/ll*mag}}
+      let cur=EYE.cur.get(ek)||{x:0,y:0};const s2=mode==="dizzy"?.5:sp;cur={x:cur.x+(tx-cur.x)*s2,y:cur.y+(ty-cur.y)*s2};EYE.cur.set(ek,cur);
+      t.setAttribute("transform","translate("+cur.x.toFixed(2)+" "+cur.y.toFixed(2)+")");
+      if(isGob){const pc=t.firstChild,pr=+pc.dataset.pr;pc.setAttribute("r",(gob&&gob.scared?pr*.6:pr).toFixed(2))}
+    });
+  });
+}
+requestAnimationFrame(eyeTick);
+$("#hall").addEventListener("click",e=>{if(!e.target.closest)return;const gb=e.target.closest("[data-gob]");if(gb){whackGob(gb,e.clientX,e.clientY);return}if(e.target.closest("[data-bell]"))ringBell()});
+$("#hall").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.closest&&e.target.closest("[data-gob]")){e.preventDefault();whackGob(e.target.closest("[data-gob]"));return}if((e.key==="Enter"||e.key===" ")&&e.target.closest&&e.target.closest("[data-bell]")){e.preventDefault();ringBell();return}const t=e.target.closest&&e.target.closest("[data-open]");if((e.key==="Enter"||e.key===" ")&&t){e.preventDefault();openModal(t.dataset.open)}});
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(!$("#modal").hidden)closeModal();else if(sheet)closeSheet();else if(stage)closeBoard()});
 
@@ -2481,6 +2613,8 @@ let qIn=false,dIn=false;
   if(!db){$("#status").hidden=false;$("#status").textContent="База гильдии недоступна. Войди в аккаунт Claude, чтобы видеть и создавать заказы.";$("#activeList").innerHTML='<div class="empty">Заказы недоступны.</div>';return}
   if(user){me=await user.me();isOwner=me.isOwner;const c=await user.can("data.write");canWrite=c!==false;}
   if(!canWrite){$("#status").hidden=false;$("#status").textContent="Режим просмотра: у тебя нет прав создавать и менять заказы.";}
+  db.doc("meta/goblins").onSnapshot(s=>{const v=s.exists?(+s.data().count||0):0;if(v!==gobKills){gobKills=Math.max(v,gobKillsLocal);renderAll()}},()=>{});
+  gobSchedule();
   db.doc("meta/hunter").onSnapshot(s=>{ownerId=s.exists?s.data().ownerId:null;
     if(isOwner&&me?.id&&ownerId!==me.id&&canWrite){db.doc("meta/hunter").set({ownerId:me.id}).catch(()=>{})}
     renderName()},()=>{});
