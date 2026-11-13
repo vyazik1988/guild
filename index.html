@@ -1973,7 +1973,7 @@ function bindBook(book){
       toast("Заказ в архиве обновлён.");document.activeElement&&document.activeElement.blur();turnTo("qd:"+q.id,true)}
     catch(e){fail(e);ae.disabled=false}};
   const bok=book.querySelector("#bk-ok");if(bok)bok.onclick=async()=>{const q=quests.find(x=>x.id===bok.dataset.id);if(!q)return;bok.disabled=true;
-    await patch(q,{status:"done",doneAt:q.submittedAt||new Date().toISOString(),note:""},"Заказ «"+q.title+"» подтверждён. +"+questXP(Object.assign({},q,{status:"done"}))+" XP");renderBookSpread(false)};
+    await patch(q,{status:"done",doneAt:q.submittedAt||new Date().toISOString(),note:"",autoConfirmed:false},"Заказ «"+q.title+"» подтверждён. +"+questXP(Object.assign({},q,{status:"done"}))+" XP");renderBookSpread(false)};
   const brw=book.querySelector("#bk-rework");if(brw)brw.onclick=async()=>{const q=quests.find(x=>x.id===brw.dataset.id);if(!q)return;brw.disabled=true;
     const note=(book.querySelector("#bk-rnote")?.value||"").trim();
     await patch(q,{status:"board",adv:null,submittedAt:null,note},"Заказ «"+q.title+"» отправлен на доработку: он снова в «Новых», прогресс сохранён.");turnTo("q:0",true)};
@@ -2078,7 +2078,7 @@ const SPREADS={
       const links=(q.links||[]).map(l=>'<a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a>').join("<br>");
       const docs=(q.attachments||[]).map(f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>').join("<br>");
       return{left:'<div class="bk-h">Заказ</div><div class="bk-qt"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><b>'+esc(q.title)+'</b></div>'+(q.desc?'<p class="desc">'+esc(q.desc)+'</p>':'')+
-          '<table class="bk-t">'+kvRows([["Исполнитель",a?advLabel(a):"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",q.doneAt?ru(q.doneAt.slice(0,10)):"-"]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
+          '<table class="bk-t">'+kvRows([["Исполнитель",a?advLabel(a):"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",(q.doneAt?ru(q.doneAt.slice(0,10)):"-")+(q.autoConfirmed?" · подтверждён автоматически":"")]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
           (q.status==="review"?'<div class="pend-plate">Ожидает подтверждения</div>'+(canWrite?'<div class="bk-review"><label class="f">Замечание (если на доработку)<input type="text" id="bk-rnote" maxlength="200"></label><div class="bk-acts"><button class="btn pri" id="bk-ok" data-id="'+esc(q.id)+'">Подтвердить</button><button class="btn ret" id="bk-rework" data-id="'+esc(q.id)+'">На доработку</button></div></div>':''):'')+(q.note?'<p class="small">Замечание: '+esc(q.note)+'</p>':''),
         right:items+(docs?'<div class="bk-h s">Документы</div><div class="small">'+docs+'</div>':'')+(links?'<div class="bk-h s">Ссылки</div><div class="small">'+links+'</div>':'')+
           '<div class="bk-h s">Результат</div>'+(q.result?'<p class="desc">'+esc(q.result)+'</p>':'<p class="small muted">Не описан.</p>')+
@@ -2454,6 +2454,20 @@ async function questAct(q,a){
 }
 
 const FORMS=new Set(["new","edit","hire","ledger"]);
+/* submitted quests are confirmed automatically at the end of their week: Sunday 23:59 Moscow time */
+function weekEndMsk(iso){
+  const t=Date.parse(iso);if(isNaN(t))return Infinity;const m=new Date(t+MSK_OFF),dow=(m.getUTCDay()+6)%7;
+  return Date.UTC(m.getUTCFullYear(),m.getUTCMonth(),m.getUTCDate()+(6-dow),23,59,0)-MSK_OFF;
+}
+let autoBusy=false;
+async function autoConfirm(){
+  if(autoBusy||!canWrite||!db)return;const now=Date.now(),due=quests.filter(q=>q.status==="review"&&now>=weekEndMsk(q.submittedAt||q.doneAt||q.updatedAt||""));
+  if(!due.length)return;autoBusy=true;
+  try{for(const q of due){await db.doc("quests/"+q.id).update({status:"done",doneAt:q.submittedAt||new Date().toISOString(),note:"",autoConfirmed:true,updatedAt:new Date().toISOString()});}
+    toast(due.length===1?"Заказ «"+due[0].title+"» подтверждён автоматически: неделя закончилась.":"Подтверждено автоматически заказов: "+due.length+" (неделя закончилась).")}
+  catch(e){}finally{autoBusy=false}
+}
+setInterval(()=>{try{autoConfirm()}catch(e){}},60000);
 function renderAll(){renderHUD();renderActive();drawHall();if(!(modalState&&FORMS.has(modalState.kind)))renderModal();renderBoardPanel();fillTable();refreshBook();renderSheet();
   document.querySelectorAll('.wrap [data-open="new"]').forEach(b=>b.hidden=!canWrite);}
 
@@ -2462,7 +2476,19 @@ document.addEventListener("click",e=>{
   const o=e.target.closest(".wrap [data-open]");if(o){openModal(o.dataset.open);return}
   const q=e.target.closest(".wrap [data-q]");if(q)openModal("quest",q.dataset.q);
 });
-function ringBell(){
+/* desk bell: a few inharmonic partials with a quick strike and a long ring */
+function bellSound(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const c=actx;if(c.state==="suspended")c.resume();
+    const t=c.currentTime+.01,base=1480*(.97+Math.random()*.06),out=c.createGain();out.gain.value=.32;out.connect(c.destination);
+    [[1,1,1.6],[2.32,.55,1.1],[3.9,.32,.7],[5.4,.18,.45],[.5,.12,1.2]].forEach(([m,a,d])=>{
+      const o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.value=base*m;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.004);g.gain.exponentialRampToValueAtTime(.0005,t+d);
+      o.connect(g);g.connect(out);o.start(t);o.stop(t+d+.05)});
+    const nb=c.createBuffer(1,Math.floor(c.sampleRate*.02),c.sampleRate),dd=nb.getChannelData(0);for(let i=0;i<dd.length;i++)dd[i]=(Math.random()*2-1)*(1-i/dd.length);
+    const ns=c.createBufferSource(),hp=c.createBiquadFilter(),ng=c.createGain();ns.buffer=nb;hp.type="highpass";hp.frequency.value=3000;ng.gain.value=.25;ns.connect(hp);hp.connect(ng);ng.connect(out);ns.start(t);
+  }catch(e){}
+}
+function ringBell(){bellSound();
   const L=$("#bellLayer");if(!L)return;
   const old=[...L.children],before=old.map(b=>b.getBoundingClientRect().top);
   const b=document.createElement("div");b.className="bub";b.textContent="Дзынь!";L.appendChild(b);
@@ -2624,7 +2650,7 @@ let qIn=false,dIn=false;
     if(isOwner&&me?.id&&ownerId!==me.id&&canWrite){db.doc("meta/hunter").set({ownerId:me.id}).catch(()=>{})}
     renderName()},()=>{});
   db.collection("quests").onSnapshot(s=>{quests=s.docs.map(d=>Object.assign({id:d.id},d.data()));qIn=true;renderAll();
-      if(!loaded&&dIn){loaded=true;prevLevel=guildLevel(guildXP()).level}},
+      if(!loaded&&dIn){loaded=true;prevLevel=guildLevel(guildXP()).level}autoConfirm()},
     ()=>{$("#status").hidden=false;$("#status").textContent="Связь с базой гильдии потеряна. Обнови страницу."});
   db.collection("adventurers").onSnapshot(s=>{advs=s.docs.map(d=>Object.assign({id:d.id},d.data()));renderAll()},()=>{});
   db.collection("daily").orderBy("date","desc").limit(365).onSnapshot(s=>{daily=s.docs.map(d=>Object.assign({id:d.id},d.data()));dIn=true;renderAll();
