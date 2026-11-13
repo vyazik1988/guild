@@ -416,6 +416,27 @@ textarea.lined{flex:1;min-height:180px;background:#fffaf0 repeating-linear-gradi
 .jr-opt i{font-style:normal;font-size:12px;color:#6b5a40}.jr-opt:hover{border-color:#1f5f9e;background:#fff}
 .jr-box .bk-acts{align-items:center}.jr-box .btn.pri:disabled{opacity:.5}
 .jr-empty{margin:6px 0}
+.jr-total{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:8px 12px;margin:2px 0 6px;border:1px solid #cdbb93;border-radius:6px;background:rgba(255,250,240,.6)}
+.jr-total span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#6b5a40}.jr-total b{font-family:var(--f-num);font-size:20px;color:#2b2116}
+.jr-tag.t-q{background:#1f5f9e;color:#fff;border-color:#1f5f9e}.jr-tag.t-i,.jr-tag.t-c{color:#4f6f8f;border-style:dashed;font-size:10px}.jr-tag.t-o{color:#7a5a2a}
+.jr-it.sub{padding-left:26px;position:relative}.jr-it.sub::before{content:"";position:absolute;left:10px;top:0;bottom:50%;width:10px;border-left:1.5px solid #b9a57c;border-bottom:1.5px solid #b9a57c;border-bottom-left-radius:5px}
+.jr-it.sub .jr-tx b{font-weight:500}.jr-it.k-q .jr-tx b{font-weight:700}
+.cal-open{align-self:flex-start;background:none;border:1px solid #b9a57c;border-radius:4px;color:#1f5f9e;font-weight:700;padding:6px 12px;cursor:pointer}.cal-open:hover{border-color:#1f5f9e;background:rgba(31,95,158,.06)}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}.cal-nav b{font-family:var(--f-disp);font-size:18px;color:#2b2116}
+table.cal{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed}
+table.cal th{font-size:11px;font-weight:600;color:#6b5a40;text-align:center;padding:2px 0}
+table.cal td{padding:0;text-align:center;vertical-align:top}
+.cal-d{width:100%;aspect-ratio:1/1;max-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid #d8c9a6;border-radius:5px;background:#fffaf0;color:#2b2116;cursor:pointer;padding:0;font:inherit}
+.cal-d b{font-size:13px;font-weight:600}.cal-d i{font-style:normal;font-size:10.5px;font-family:var(--f-num);color:#5b4a33;min-height:1em}
+.cal-d.l1{background:#e3eef8}.cal-d.l2{background:#c4dcf0}.cal-d.l3{background:#8fbbe2}.cal-d.l4{background:#4f8fc9;color:#fff}.cal-d.l4 i{color:#fff}
+.cal-d.now{box-shadow:inset 0 0 0 2px #c9973f}.cal-d.cur{outline:2px solid #1f5f9e;outline-offset:1px}
+.cal-d:disabled{opacity:.35;cursor:default;background:transparent}.cal-d:not(:disabled):hover{border-color:#1f5f9e}
+td.cal-w,th.cal-w{font-family:var(--f-num);font-size:11px;color:#1f5f9e;font-weight:700;vertical-align:middle}
+.cal-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cal-sum div{border:1px solid #cdbb93;border-radius:5px;padding:8px 10px;background:rgba(255,250,240,.5)}
+.cal-sum small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b5a40}.cal-sum b{font-family:var(--f-num);font-size:17px;color:#2b2116}
+.bk-h2{font-weight:700;color:#3a2a1a;margin-top:6px}
+.cal-weeks{list-style:none;margin:0;padding:0}.cal-weeks li{display:grid;grid-template-columns:120px 1fr 90px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dotted #b9a57c;font-size:13px}
+.cal-weeks i{height:8px;background:#e6dcc5;border-radius:4px;overflow:hidden}.cal-weeks em{display:block;height:100%;background:#1f5f9e}.cal-weeks b{text-align:right;font-family:var(--f-num)}
 .hv{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;background:rgba(8,6,4,.88);padding:16px;gap:10px}
 .hv-bar{display:flex;align-items:center;gap:10px;color:#f3e6c8;font-family:"Exo 2",system-ui,sans-serif}.hv-bar b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.hv-sp{flex:1}
 .hv-body{flex:1;min-height:0;background:#fff;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center}
@@ -2022,18 +2043,75 @@ const JR_TIME='<div class="jr-time"><span class="small muted">Примерное
 function loggedKeys(){const k=new Set();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.cnt)k.add(x.qid+"|"+(x.i??""))}));return k}
 function freeItems(q,lk){return (q.kind==="checklist"?clean(q.items||[]):[]).map((it,k)=>({it,k})).filter(o=>!lk.has(q.id+"|"+o.k))}
 function questLoggable(q,lk){return !lk.has(q.id+"|")||freeItems(q,lk).length>0}
+/* ---- worked time per day ----
+   pieces of a quest (items, pages, plain work) count on their own day; the "quest done" entry adds only
+   what is left of its total after all those pieces, on the day it was submitted */
+function questLogged(){const m=new Map();daily.forEach(d=>entriesOf(d).forEach(x=>{if(x.t==="quest"&&x.qid&&!x.done&&x.min)m.set(x.qid,(m.get(x.qid)||0)+(+x.min||0))}));return m}
+function entryMin(en,ql){if(en.t==="quest"&&en.done)return Math.max(0,(+en.min||0)-(ql.get(en.qid)||0));return +en.min||0}
+function dayMin(d,ql){return entriesOf(d).reduce((t,x)=>t+entryMin(x,ql),0)}
+const fmtH=m=>{m=Math.round(+m||0);const h=Math.floor(m/60),r=m%60;return h&&r?h+"\u00a0ч "+r+"\u00a0мин":h?h+"\u00a0ч":r?r+"\u00a0мин":"0\u00a0ч"};
+const fmtHs=m=>{m=Math.round(+m||0);const h=Math.floor(m/60),r=m%60;return !m?"":h&&r?h+"ч"+String(r).padStart(2,"0"):h?h+"ч":r+"м"};
+const MON_NOM=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const MON_SHORT=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+const monthOf=d=>d.slice(0,7),shiftMonth=(m,k)=>{let y=+m.slice(0,4),mo=+m.slice(5,7)-1+k;y+=Math.floor(mo/12);mo=((mo%12)+12)%12;return y+"-"+String(mo+1).padStart(2,"0")};
+function calendarSpread(sid){
+  const mon=sid.slice(4),y=+mon.slice(0,4),mi=+mon.slice(5,7)-1,ql=questLogged(),byDay=new Map(daily.map(d=>[d.id,d]));
+  const first=mon+"-01",dows=(new Date(first+"T12:00:00Z").getUTCDay()+6)%7,days=new Date(Date.UTC(y,mi+1,0)).getUTCDate();
+  let start=shiftDay(first,-dows),rows="",monTotal=0,logged=0,weeks=[];
+  const back=stage&&stage._jlast||yesterday(),max=Math.max(1,...daily.map(d=>dayMin(d,ql)));
+  for(let w=0;w<6;w++){
+    let cells="",wk=0,any=false;
+    for(let k=0;k<7;k++){
+      const d=shiftDay(start,w*7+k),inMon=monthOf(d)===mon,ok=d>=GUILD_OPEN&&d<=today(),doc=byDay.get(d),m=doc?dayMin(doc,ql):0,rec=!!(doc&&entriesOf(doc).length);
+      if(inMon&&d<=today())any=true;wk+=m;if(inMon){monTotal+=m;if(rec)logged++}
+      const lvl=m?Math.min(4,1+Math.floor(m/max*3.999)):0;
+      cells+='<td>'+(inMon?'<button class="cal-d l'+lvl+(d===today()?' now':'')+(d===back?' cur':'')+(rec?' rec':'')+'"'+(ok?' data-turn="'+d+'"':' disabled')+' aria-label="'+ru(d)+(m?', '+fmtLong(m):'')+'"><b>'+(+d.slice(8))+'</b><i>'+(m?fmtHs(m):rec?"•":"")+'</i></button>':'')+'</td>';
+    }
+    if(w>0&&!rows.includes("cal-d")&&false){}
+    const wkStart=shiftDay(start,w*7);
+    if(monthOf(wkStart)>mon)break;
+    rows+='<tr>'+cells+'<td class="cal-w">'+(wk?fmtHs(wk):"")+'</td></tr>';
+    weeks.push({from:wkStart,to:shiftDay(wkStart,6),m:wk});
+    if(shiftDay(wkStart,7)>shiftDay(first,days-1))break;
+  }
+  const pm=shiftMonth(mon,-1),nm=shiftMonth(mon,1),canPrev=pm+"-31">=GUILD_OPEN,canNext=nm+"-01"<=today();
+  const wmax=Math.max(1,...weeks.map(x=>x.m));
+  const left='<div class="bk-h">Календарь смен</div>'+
+    '<div class="cal-nav">'+(canPrev?'<button class="bk-link" data-back="cal:'+pm+'">← '+MON_SHORT[(mi+11)%12]+'</button>':'<span></span>')+'<b>'+MON_NOM[mi]+' '+y+'</b>'+(canNext?'<button class="bk-link" data-turn="cal:'+nm+'">'+MON_SHORT[(mi+1)%12]+' →</button>':'<span></span>')+'</div>'+
+    '<table class="cal"><thead><tr>'+["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>'<th>'+x+'</th>').join("")+'<th class="cal-w">Нед.</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<p class="small muted">Число под датой — сколько отработано в этот день. Нажми на день, чтобы открыть его страницу.</p>';
+  const right='<div class="bk-h">Итоги месяца</div>'+
+    '<div class="cal-sum"><div><small>Отработано</small><b>'+fmtH(monTotal)+'</b></div><div><small>Записано дней</small><b>'+logged+'</b></div><div><small>В среднем за день</small><b>'+(logged?fmtH(monTotal/logged):"-")+'</b></div></div>'+
+    '<div class="bk-h2">По неделям</div><ul class="cal-weeks">'+weeks.map(x=>'<li><span>'+ruShort(x.from)+' - '+ruShort(x.to)+'</span><i><em style="width:'+(x.m/wmax*100).toFixed(1)+'%"></em></i><b>'+(x.m?fmtH(x.m):"-")+'</b></li>').join("")+'</ul>'+
+    '<div class="bk-nav"><button class="bk-link" data-turn="'+back+'">← К дню '+ruShort(back)+'</button><span></span></div>';
+  return{left,right};
+}
 function journalRight(sid,e,edit){
-  const ents=entriesOf(e),st=stage&&stage._jadd||null;
-  const li=(en,k)=>{
-    const q=en.t==="quest",sub=q?(en.item||en.cnt?"Заказ «"+esc(en.title)+"»":(en.done?"Заказ выполнен":"Работа над заказом"))+(en.min?" · "+fmtLong(en.min).replace(/ /g,"\u00a0"):""):(en.min?fmtLong(en.min).replace(/ /g,"\u00a0"):"");
-    const main=q?(en.cnt?"+"+en.cnt+" "+(en.unit||"")+(en.note?" · "+en.note:""):(en.item||en.title)):en.text;
+  const ents=entriesOf(e),st=stage&&stage._jadd||null,ql=questLogged();
+  const kindOf=en=>en.t!=="quest"?"o":en.cnt?"c":en.item?"i":"q";
+  const li=(en,k,child)=>{
+    const kd=kindOf(en),own=entryMin(en,ql),tot=+en.min||0;
+    let main,sub="";
+    if(kd==="o")main=en.text;
+    else if(kd==="c")main="+"+en.cnt+" "+(en.unit||"")+(en.note?" · "+en.note:"");
+    else if(kd==="i")main=en.item;
+    else main=en.title;
+    if(kd==="q")sub=(en.done?"Заказ выполнен":"Работа над заказом")+(en.done&&tot?(own===tot?" · "+fmtH(tot):" · всего "+fmtH(tot)+(own?", за этот день +"+fmtH(own):", время учтено в пунктах")):(tot?" · "+fmtH(tot):""));
+    else{sub=(!child&&kd!=="o"?"Заказ «"+esc(en.title)+"»":"");if(tot)sub+=(sub?" · ":"")+fmtH(tot)}
+    const tag={o:"Другое",c:"Прогресс",i:"Пункт",q:"Задание"}[kd];
     const ed=edit&&stage&&stage._jedit===k,m=en.min||0;
-    return '<li class="jr-it'+(ed?' on':'')+'"><span class="jr-tag '+(q?"jq":"jo")+'">'+(q?"Задание":"Другое")+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+
-      (ed?'<div class="jr-ed"><span class="small muted">Примерное время работы</span><div class="row"><label class="f">Часы<input type="number" id="je-h" min="0" max="999" value="'+Math.floor(m/60)+'" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="je-m" min="0" max="59" step="5" value="'+(m%60)+'" inputmode="numeric"></label></div>'+
+    return '<li class="jr-it k-'+kd+(child?' sub':'')+(ed?' on':'')+'"><span class="jr-tag t-'+kd+'">'+tag+'</span><div class="jr-tx"><b>'+esc(main)+'</b>'+(sub?'<i>'+sub+'</i>':'')+
+      (ed?'<div class="jr-ed"><span class="small muted">'+(kd==="q"&&en.done?"Всего времени на заказ":"Примерное время работы")+'</span><div class="row"><label class="f">Часы<input type="number" id="je-h" min="0" max="999" value="'+Math.floor(m/60)+'" inputmode="numeric"></label><label class="f">Минуты<input type="number" id="je-m" min="0" max="59" step="5" value="'+(m%60)+'" inputmode="numeric"></label></div>'+
         '<div class="bk-acts"><button class="btn pri" id="je-ok" data-k="'+k+'">Сохранить</button><button class="bk-link" id="je-no">Отмена</button></div></div>':'')+'</div>'+
       (edit&&!ed?'<button class="jr-edb" data-jedit="'+k+'" title="Изменить время" aria-label="Изменить время">✎</button><button class="jr-del" data-jdel="'+k+'" title="Убрать действие" aria-label="Убрать действие">×</button>':'')+'</li>';
   };
-  let h=ents.length?'<ol class="jr-list">'+ents.map(li).join("")+'</ol>':'<p class="muted jr-empty">'+(edit?"Пока нет ни одного действия за этот день.":"Менеджер ещё не записал результат за этот день.")+'</p>';
+  /* group the pieces of one quest under its "quest" line when that line is on this day */
+  const groups=[],byQ=new Map();
+  ents.forEach((en,k)=>{if(en.t==="quest"&&en.qid){let g=byQ.get(en.qid);if(!g){g={q:en.qid,head:[],kids:[]};byQ.set(en.qid,g);groups.push(g)}(kindOf(en)==="q"?g.head:g.kids).push([en,k])}else groups.push({head:[[en,k]],kids:[]})});
+  const list=groups.map(g=>g.head.map(([en,k])=>li(en,k,false)).join("")+g.kids.map(([en,k])=>li(en,k,g.head.length>0)).join("")).join("");
+  const total=e?dayMin(e,ql):0;
+  let h=(ents.length?'<div class="jr-total"><span>Отработано за день</span><b>'+fmtH(total)+'</b></div>':'')+
+    (ents.length?'<ol class="jr-list">'+list+'</ol>':'<p class="muted jr-empty">'+(edit?"Пока нет ни одного действия за этот день.":"Менеджер ещё не записал результат за этот день.")+'</p>');
   if(!edit)return h;
   if(!st)h+='<button class="jr-add" id="jr-add">+ Добавить действие</button>';
   else if(st==="pick")h+='<div class="jr-box"><div class="jr-cap">Что добавить?</div><div class="jr-pick"><button class="jr-opt" data-jmode="quest"><b>Задание</b><i>заказ с доски или из архива</i></button><button class="jr-opt" data-jmode="other"><b>Другое</b><i>своими словами</i></button></div><div class="bk-acts"><button class="bk-link" data-jmode="">Отмена</button></div></div>';
@@ -2051,11 +2129,14 @@ function journalRight(sid,e,edit){
 }
 const SPREADS={
   journal(sid){
+    if(sid.startsWith("cal:"))return calendarSpread(sid);
+    if(stage)stage._jlast=sid;
     const y=yesterday(),e=daily.find(d=>d.id===sid),done=!!(e&&(e.text||"").trim()),edit=isOwner&&canWrite,prev=shiftDay(sid,-1),next=shiftDay(sid,1);
     const left='<div class="bk-h">Журнал смены</div><div class="bk-date"><b>'+ru(sid)+'</b><span>'+WD_FULL[new Date(sid+"T12:00:00").getDay()]+(sid===y?" · вчера":sid===today()?" · сегодня":"")+'</span></div>'+
       '<div class="bk-stamp '+(done?"ok":"bad")+'">'+(done?"ЗАПИСАНО":"НЕ ЗАПИСАНО")+'</div>'+
       '<p class="small muted">Добавь справа всё, что сделано за этот день: задания, их пункты или другие дела. Заполненный день приносит гильдии +'+DAILY_XP+' XP.</p>'+
       '<label class="f">Открыть другой день<input type="date" id="bk-day" value="'+sid+'" min="'+GUILD_OPEN+'" max="'+today()+'"></label>'+
+      '<button class="cal-open" data-turn="cal:'+monthOf(sid)+'">▦ Календарь смен</button>'+
       (sid===GUILD_OPEN?'<p class="small muted">Это первый день работы гильдии, раньше записей нет.</p>':'')+
       '<div class="bk-nav">'+(prev>=GUILD_OPEN?'<button class="bk-link" data-back="'+prev+'">← '+ruShort(prev)+'</button>':'<span></span>')+(next<=today()?'<button class="bk-link" data-turn="'+next+'">'+ruShort(next)+' →</button>':'<span></span>')+'</div>';
     const right='<div class="bk-h">Результат дня</div>'+journalRight(sid,e,edit);
