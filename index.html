@@ -482,6 +482,9 @@ td.cal-w,th.cal-w{font-family:var(--f-num);font-size:11px;color:#1f5f9e;font-wei
 #hall .ratEyes{animation:ratBlink 5s infinite}@keyframes ratBlink{0%,92%,100%{opacity:1}94%,97%{opacity:0}}
 #hall .ratHead{animation:ratPeek 6s ease-in-out infinite;transform-box:fill-box;transform-origin:100% 100%}
 @keyframes ratPeek{0%,70%,100%{transform:translateX(0)}78%,86%{transform:translateX(3px)}}
+#hall .xb{animation:xtw 1.8s ease-in-out infinite}#hall .xglow{animation:xtw 3s ease-in-out infinite}
+@keyframes xtw{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){#hall .xb,#hall .xglow{animation:none}}
 @media (prefers-reduced-motion:reduce){#hall .ratEyes,#hall .ratHead{animation:none}}
 .jr-edb{flex:0 0 auto;background:none;border:none;color:#9b8a6a;font-size:16px;line-height:1;padding:2px 4px;cursor:pointer}.jr-edb:hover{color:#1f5f9e}
 .jr-it.on{background:rgba(31,95,158,.05)}
@@ -982,6 +985,47 @@ function todNow(){
       ms=Date.parse(day+"T00:00:00Z")-MSK_OFF+(+m[1]*60+ +m[2])*6e4}}catch(e){}
   return ms;
 }
+/* ================= New Year decorations (15 Nov - 14 Jan, MSK; ?xmas=1 / ?xmas=0 to force) ================= */
+function xmasOn(){try{const f=new URLSearchParams(location.search).get("xmas");if(f==="1")return true;if(f==="0")return false}catch(e){}
+  const d=new Date(todNow()+MSK_OFF),m=d.getUTCMonth()+1,day=d.getUTCDate();return (m===11&&day>=15)||m===12||(m===1&&day<=14)}
+const XC=["#e8463a","#f2c14e","#5fc46a","#5aa0f0","#e879c8"];
+const xbulb=(x,y,k,r)=>{const c=XC[k%XC.length];r=r||3.3;return '<g class="xb" style="animation-delay:'+((k*0.37)%1.8).toFixed(2)+'s"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(r*2.2).toFixed(1)+'" fill="'+c+'" opacity=".22"/><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+c+'" stroke="#1d1209" stroke-width=".8"/><circle cx="'+(x-r*.35).toFixed(1)+'" cy="'+(y-r*.35).toFixed(1)+'" r="'+(r*.35).toFixed(1)+'" fill="#fff" opacity=".7"/></g>'};
+function xmasTree(cx,by){
+  const OLs='stroke="#1d1209" stroke-width="1.5" stroke-linejoin="round"';
+  const tier=(ap,base,hw,n)=>{let d="M"+cx+" "+ap+"L"+(cx+hw)+" "+base;const w=2*hw/n;for(let i=0;i<n;i++){const x1=cx+hw-w*(i+1);d+="Q"+(x1+w/2).toFixed(1)+" "+(base+7)+" "+x1.toFixed(1)+" "+base}d+="Z";
+    const sh="M"+cx+" "+ap+"L"+(cx+hw)+" "+base+"Q"+(cx+hw-w/2)+" "+(base+7)+" "+(cx+hw-w)+" "+base+"L"+(cx+hw*.25)+" "+(base-4)+"Z";
+    return '<path d="'+d+'" fill="#246b3c" '+OLs+'/><path d="'+sh+'" fill="#18482a" opacity=".85"/><path d="M'+cx+' '+(ap+6)+'L'+(cx-hw*.55)+' '+(base-8)+'" stroke="#3a8f55" stroke-width="2" stroke-linecap="round" opacity=".7"/>'};
+  const tinsel=(x1,y1,x2,y2,sag)=>'<path d="M'+x1+' '+y1+'Q'+((x1+x2)/2)+' '+(Math.max(y1,y2)+sag)+' '+x2+' '+y2+'" fill="none" stroke="#e3b04b" stroke-width="2" stroke-dasharray="1 2.5" stroke-linecap="round"/>';
+  const ball=(x,y,c)=>'<line x1="'+x+'" y1="'+(y-8)+'" x2="'+x+'" y2="'+(y-4)+'" stroke="#c9a24a" stroke-width="1"/><circle cx="'+x+'" cy="'+y+'" r="5.2" fill="'+c+'" '+OLs+'/><circle cx="'+(x-1.7)+'" cy="'+(y-1.8)+'" r="1.6" fill="#fff" opacity=".65"/>';
+  let g='<g class="xtree" aria-hidden="true"><ellipse cx="'+cx+'" cy="'+(by+2)+'" rx="44" ry="6" fill="#000" opacity=".35"/>'+
+    '<rect x="'+(cx-6)+'" y="'+(by-40)+'" width="12" height="16" fill="#4a2e18" '+OLs+'/>'+
+    '<path d="M'+(cx-27)+' '+(by-28)+'h54l-5 28h-44z" fill="#7a4e2a" '+OLs+'/><path d="M'+(cx-26)+' '+(by-20)+'h52M'+(cx-24)+' '+(by-8)+'h48" stroke="#2a2a2e" stroke-width="2.4"/>'+
+    '<path d="M'+(cx-12)+' '+(by-28)+'l-2 28M'+(cx+10)+' '+(by-28)+'l2 28" stroke="#5a3820" stroke-width="1.2"/>';
+  g+=tier(by-150,by-38,56,7)+tier(by-196,by-96,44,6)+tier(by-236,by-150,31,4);
+  g+=tinsel(cx-40,by-62,cx+46,by-50,10)+tinsel(cx-30,by-118,cx+34,by-108,9)+tinsel(cx-18,by-168,cx+22,by-160,7);
+  g+=ball(cx-24,by-58,"#b8322a")+ball(cx+22,by-74,"#e3b04b")+ball(cx-2,by-46,"#3a6bb0")+ball(cx+38,by-46,"#b8322a")+ball(cx-40,by-48,"#e3b04b")+
+     ball(cx+14,by-118,"#b8322a")+ball(cx-20,by-110,"#3a6bb0")+ball(cx+30,by-102,"#e3b04b")+ball(cx-4,by-170,"#e3b04b")+ball(cx+12,by-158,"#3a6bb0");
+  const L=[[-34,-82],[6,-90],[30,-60],[-12,-70],[-44,-60],[18,-50],[-28,-130],[0,-132],[24,-126],[-14,-150],[-8,-190],[10,-180],[44,-58],[-2,-108]];
+  L.forEach((p,k)=>g+=xbulb(cx+p[0],by+p[1],k,2.4));
+  const st=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?5.5:13;st.push((cx+r*Math.cos(a)).toFixed(1)+","+(by-240+r*Math.sin(a)).toFixed(1))}
+  g+='<circle cx="'+cx+'" cy="'+(by-240)+'" r="34" fill="url(#lamp)" class="xglow"/><polygon points="'+st.join(" ")+'" fill="#f2c14e" '+OLs+'/><polygon points="'+st.join(" ")+'" fill="#fff3c8" transform="translate('+cx+' '+(by-240)+') scale(.45) translate('+(-cx)+' '+(240-by)+')"/>';
+  return g+'</g>';
+}
+function xmasGarland(x0,x1,y,n,sag){
+  const w=(x1-x0)/n;let path="M"+x0+" "+y,b="",pins="",k=0;
+  for(let i=0;i<n;i++){const a=x0+w*i,c=a+w;path+="Q"+(a+w/2)+" "+(y+sag*2)+" "+c+" "+y;
+    [.18,.5,.82].forEach(t=>{const px=(1-t)*(1-t)*a+2*(1-t)*t*(a+w/2)+t*t*c,py=(1-t)*(1-t)*y+2*(1-t)*t*(y+sag*2)+t*t*y;b+='<rect x="'+(px-1.6).toFixed(1)+'" y="'+(py+1).toFixed(1)+'" width="3.2" height="3" fill="#3a3a3a"/>'+xbulb(px,py+7,k++)})}
+  for(let i=0;i<=n;i++){const x=x0+w*i;pins+='<circle cx="'+x+'" cy="'+y+'" r="5" fill="#b8322a" stroke="#1d1209" stroke-width="1.2"/><path d="M'+(x-5)+' '+(y+3)+'l-3 9M'+(x+5)+' '+(y+3)+'l3 9" stroke="#b8322a" stroke-width="2.4" stroke-linecap="round"/>'}
+  return '<g class="xgar" aria-hidden="true"><path d="'+path+'" fill="none" stroke="#1d1209" stroke-width="10" stroke-linecap="round"/><path d="'+path+'" fill="none" stroke="#246b3c" stroke-width="7" stroke-linecap="round"/><path d="'+path+'" fill="none" stroke="#3a8f55" stroke-width="4" stroke-dasharray="2 4" stroke-linecap="round"/>'+b+pins+'</g>';
+}
+function xmasWreath(cx,cy){
+  let g='<g class="xwreath" aria-hidden="true" transform="translate('+cx+' '+cy+') matrix(.8 -.1 0 1 0 0)"><circle r="21" fill="none" stroke="#1d1209" stroke-width="15"/><circle r="21" fill="none" stroke="#18482a" stroke-width="12"/>';
+  for(let i=0;i<30;i++){const a=i/30*Math.PI*2,r=i%2?17:25,x=r*Math.cos(a),y=r*Math.sin(a);g+='<ellipse cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" rx="7" ry="3" fill="'+(i%3?"#2e7a46":"#246b3c")+'" stroke="#123a20" stroke-width=".7" transform="rotate('+((a*180/Math.PI)+90+(i%2?25:-25)).toFixed(0)+' '+x.toFixed(1)+' '+y.toFixed(1)+')"/>'}
+  [0,72,144,216,288].forEach((d,k)=>{const a=(d+15)*Math.PI/180,x=21*Math.cos(a),y=21*Math.sin(a);[[0,0],[3.4,1.6],[.6,3.6]].forEach(o=>g+='<circle cx="'+(x+o[0]).toFixed(1)+'" cy="'+(y+o[1]).toFixed(1)+'" r="2.2" fill="#c8302a" stroke="#5a1414" stroke-width=".6"/>')});
+  g+='<path d="M0 18l-6 22 5-3 3 5zM0 18l6 22-5-3-3 5z" fill="#a82c2c" stroke="#1d1209" stroke-width="1.2" stroke-linejoin="round"/>'+
+     '<path d="M0 18q-14-12-16-2t16 2zM0 18q14-12 16-2t-16 2z" fill="#c8302a" stroke="#1d1209" stroke-width="1.2" stroke-linejoin="round"/><circle cy="18" r="3.6" fill="#a82c2c" stroke="#1d1209" stroke-width="1.2"/>';
+  return g+'</g>';
+}
 const mixC=(a,b,t)=>{t=Math.max(0,Math.min(1,t));const h=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=h(a),B=h(b);
   return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("")};
 const sstep=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
@@ -1248,12 +1292,13 @@ function drawHall(){
     '<path d="M515 71h60v134l-30-18-30 18z" fill="#1f3a6b" stroke="#c9a24a" stroke-width="2"/><path d="M521 77h48v116l-24-14-24 14z" fill="none" stroke="#c9a24a" stroke-width=".8" opacity=".7"/>'+
     '<path d="M530 96l30 52M560 96l-30 52" stroke="#e9dfc6" stroke-width="3.2" stroke-linecap="round"/>'+
     '<path d="M545 106l17 6v16q0 18-17 26q-17-8-17-26v-16z" fill="#c9a24a" '+OL+'/><text x="545" y="134.5" text-anchor="middle" font-family="Russo One" font-size="20" fill="#1f3a6b">'+GR.rk+'</text>';
+  const XMAS=xmasOn();
   let doorPl='';for(let k=1;k<4;k++){const x=1116+k*21,yt=152-(k*21)*16/84,yb=428+(k*21)*6/84;doorPl+='<line x1="'+x+'" y1="'+yt.toFixed(1)+'" x2="'+x+'" y2="'+yb.toFixed(1)+'" stroke="#3a2616" stroke-width="2"/>'}
   const door='<g aria-label="Вход для заказчиков"><polygon points="1102,132 1200,110 1200,446 1102,438" fill="#120b06"/>'+
     '<polygon points="1116,152 1200,136 1200,434 1116,428" fill="#5a3b22" '+OL+'/>'+doorPl+
     '<path d="M1116 196l60-8v7l-60 8zM1116 370l60-3v7l-60 3z" fill="#2a2a2e"/><circle cx="1124" cy="200" r="2" fill="#6a6a70"/><circle cx="1124" cy="373" r="2" fill="#6a6a70"/>'+
     '<circle cx="1131" cy="298" r="7" fill="none" stroke="#c9a24a" stroke-width="2.6"/><circle cx="1131" cy="291" r="2.5" fill="#c9a24a"/>'+
-    '</g>';
+    (XMAS?xmasWreath(1160,248):'')+'</g>';
 
   $("#hall").innerHTML=
   '<defs><radialGradient id="lamp"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>'+
@@ -1285,13 +1330,13 @@ function drawHall(){
   '<line x1="840" y1="70" x2="840" y2="320" stroke="#3d2816" stroke-width="4" stroke-dasharray="8 6"/>'+
   '<text x="727" y="94" text-anchor="middle" font-family="Russo One" font-size="15" fill="#f3e6cf" letter-spacing="2">НОВЫЕ · '+fresh.length+'</text>'+
   '<text x="953" y="94" text-anchor="middle" font-family="Russo One" font-size="15" fill="#f3e6cf" letter-spacing="2">В РАБОТЕ · '+work.length+'</text>'+
-  grid(fresh,628,false)+grid(work,852,true)+
+  grid(fresh,628,false)+grid(work,852,true)+(XMAS?xmasGarland(606,1074,60,6,9):'')+
   '<g class="sign" aria-hidden="true"><rect x="731" y="30" width="224" height="28" rx="3" fill="#000" opacity=".35"/>'+
   '<rect x="728" y="26" width="224" height="28" rx="3" fill="#4a311c" stroke="#2c1d10" stroke-width="3"/><rect x="735" y="31" width="210" height="18" rx="2" fill="none" stroke="#6b4a2a"/>'+
   '<circle cx="740" cy="40" r="2" fill="#8a6a2a"/><circle cx="940" cy="40" r="2" fill="#8a6a2a"/>'+
   '<text x="840" y="47" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#1a110b">ДОСКА ЗАКАЗОВ</text>'+
   '<text x="840" y="46" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#e6c88a">ДОСКА ЗАКАЗОВ</text></g></g>'+
-  noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+
+  noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+(XMAS?xmasTree(554,476):'')+
   // adventurers' tables (hot)
   '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Хронометр, стол авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
   corner+'</g>'+
