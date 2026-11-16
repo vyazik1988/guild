@@ -708,10 +708,11 @@ const KIND={simple:"Обычный",counter:"Счётчик",checklist:"Чек-�
 const CLASSES={
   chron:{n:"Летописец",area:"Изучение и прочтение книг и статей",c:"#a77bff"},
   eng:{n:"Инженер",area:"Разработка прототипов, кодинг",c:"#ff9a4f"},
-  sci:{n:"Учёный",area:"Исследования",c:"#5fd28f"}
+  sci:{n:"Учёный",area:"Исследования",c:"#5fd28f"},
+  tailor:{n:"Портной",area:"Оформление: визуал, интерфейсы, презентации",c:"#f27aa8"}
 };
 const NO_CLASS={n:"Авантюрист",area:"",c:"#9aa8bf"};
-const MAX_ACTIVE=1, MAX_ADVS=3, DAILY_XP=15, STEP_XP=2;
+const MAX_ACTIVE=1, MAX_ADVS=4, DAILY_XP=15, STEP_XP=2;
 let draft=[],assetsApi=null,uploading={},pendingFiles=[];
 const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json",html:"text/html",htm:"text/html"};
 const ATT_ACCEPT=Object.keys(ATT_TYPES).map(e=>"."+e).join(",");
@@ -1134,6 +1135,8 @@ function drawHall(){
     if(a.cls==="eng"){let t="";for(let k=0;k<8;k++){const an=k*Math.PI/4;t+='<rect x="'+(x-2.5)+'" y="'+(y-19)+'" width="5" height="6" fill="#8d96a3" transform="rotate('+(k*45)+' '+x+' '+(y-9)+')"/>'}
       return t+'<circle cx="'+x+'" cy="'+(y-9)+'" r="8" fill="#8d96a3" '+OL+'/><circle cx="'+x+'" cy="'+(y-9)+'" r="3" fill="#3a3f47"/>'}
     if(a.cls==="sci")return '<path d="M'+(x-4)+' '+(y-22)+'v8l-8 12a4 4 0 0 0 3 5h18a4 4 0 0 0 3-5l-8-12v-8z" fill="#cfe8ff" fill-opacity=".55" '+OL+'/><path d="M'+(x-10)+' '+(y-4)+'a4 4 0 0 0 2 3h16a4 4 0 0 0 2-3l-4-6h-12z" fill="#5fd28f"/><circle cx="'+(x+2)+'" cy="'+(y-12)+'" r="1.5" fill="#5fd28f"/>';
+    if(a.cls==="tailor")return '<path d="M'+(x-16)+' '+(y-1)+'l8-12M'+(x-16)+' '+(y-13)+'l8 12" stroke="#8d96a3" stroke-width="2.4" stroke-linecap="round"/><circle cx="'+(x-18)+'" cy="'+(y)+'" r="3" fill="none" stroke="#c8302a" stroke-width="1.8"/><circle cx="'+(x-18)+'" cy="'+(y-14)+'" r="3" fill="none" stroke="#c8302a" stroke-width="1.8"/>'+
+      '<rect x="'+(x+2)+'" y="'+(y-16)+'" width="14" height="3" rx="1" fill="#a06838" '+OL+'/><rect x="'+(x+3)+'" y="'+(y-13)+'" width="12" height="10" fill="#f27aa8" '+OL+'/><rect x="'+(x+2)+'" y="'+(y-3)+'" width="14" height="3" rx="1" fill="#a06838" '+OL+'/><path d="M'+(x+4)+' '+(y-11)+'h10M'+(x+4)+' '+(y-8)+'h10M'+(x+4)+' '+(y-5)+'h10" stroke="#b8507a" stroke-width=".7"/><path d="M'+(x+15)+' '+(y-8)+'q8 2 6 8" fill="none" stroke="#f27aa8" stroke-width="1"/>';
     return "";
   };
   const chairFront=(x,S)=>({back:
@@ -1150,11 +1153,14 @@ function drawHall(){
     if(a.cls==="chron")head='<path d="M'+(x-19)+' '+(y+8)+'Q'+(x-20)+' '+(y-23)+' '+x+' '+(y-22)+'Q'+(x+20)+' '+(y-23)+' '+(x+19)+' '+(y+8)+'Q'+(x+13)+' '+(y-12)+' '+x+' '+(y-12)+'Q'+(x-13)+' '+(y-12)+' '+(x-19)+' '+(y+8)+'Z" fill="'+c+'" '+OL+'/>';
     else if(a.cls==="eng")head='<path d="M'+(x-15)+' '+(y-3)+'Q'+x+' '+(y-23)+' '+(x+15)+' '+(y-3)+'Q'+x+' '+(y-11)+' '+(x-15)+' '+(y-3)+'Z" fill="#5a3a20" '+OL+'/><rect x="'+(x-15)+'" y="'+(y-9)+'" width="30" height="3" fill="#3a3a3a"/><circle cx="'+(x-6)+'" cy="'+(y-8)+'" r="4.2" fill="#9fd4ff" stroke="#3a3a3a" stroke-width="2"/><circle cx="'+(x+6)+'" cy="'+(y-8)+'" r="4.2" fill="#9fd4ff" stroke="#3a3a3a" stroke-width="2"/>';
     else if(a.cls==="sci")head='<path d="M'+(x-16)+' '+(y-1)+'q-5-10 4-14q4-9 12-4q8-6 12 4q9 4 4 14q-6-8-16-8t-16 8z" fill="#dcdcdc" '+OL+'/><circle cx="'+(x-5)+'" cy="'+(y+1)+'" r="4" fill="none" stroke="#3a3a3a" stroke-width="1.3"/><circle cx="'+(x+5)+'" cy="'+(y+1)+'" r="4" fill="none" stroke="#3a3a3a" stroke-width="1.3"/>';
+    else if(a.cls==="tailor")head='<path d="M'+(x-11)+' '+(y+15)+'q-1 12 2 26M'+(x+11)+' '+(y+15)+'q2 14-1 30" fill="none" stroke="#1d1209" stroke-width="4.6" stroke-linecap="round"/><path d="M'+(x-11)+' '+(y+15)+'q-1 12 2 26M'+(x+11)+' '+(y+15)+'q2 14-1 30" fill="none" stroke="#f2d04e" stroke-width="3" stroke-linecap="round"/><path d="M'+(x-11)+' '+(y+15)+'q-1 12 2 26M'+(x+11)+' '+(y+15)+'q2 14-1 30" fill="none" stroke="#5a4a1a" stroke-width="3" stroke-dasharray=".7 3.3"/>'+
+      '<circle cx="'+x+'" cy="'+(y-19)+'" r="7.5" fill="#6b2f22" '+OL+'/><path d="M'+(x-11)+' '+(y-25)+'l22 9" stroke="#c9a24a" stroke-width="1.6" stroke-linecap="round"/><circle cx="'+(x-11)+'" cy="'+(y-25)+'" r="1.8" fill="#c8302a"/>'+
+      '<path d="M'+(x-17)+' '+(y+6)+'Q'+(x-19)+' '+(y-17)+' '+x+' '+(y-16)+'Q'+(x+19)+' '+(y-17)+' '+(x+17)+' '+(y+6)+'Q'+(x+13)+' '+(y-6)+' '+(x+3)+' '+(y-9)+'Q'+(x-8)+' '+(y-4)+' '+(x-17)+' '+(y+6)+'Z" fill="#7a3626" '+OL+'/>';
     else head='<path d="M'+(x-16)+' '+(y-1)+'Q'+x+' '+(y-26)+' '+(x+16)+' '+(y-1)+'Q'+x+' '+(y-10)+' '+(x-16)+' '+(y-1)+'Z" fill="'+c+'"/>';
     return '<path d="M'+(x-27)+' '+(y+74)+'Q'+(x-27)+' '+(y+20)+' '+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'Z" fill="'+c+'" '+OL+'/>'+
       '<path d="M'+x+' '+(y+15)+'Q'+(x+27)+' '+(y+20)+' '+(x+27)+' '+(y+74)+'H'+(x+10)+'Q'+(x+12)+' '+(y+32)+' '+x+' '+(y+15)+'Z" fill="#000" opacity=".22"/>'+
       '<path d="M'+(x-9)+' '+(y+17)+'L'+x+' '+(y+34)+'L'+(x+9)+' '+(y+17)+'" fill="none" stroke="#1d1209" stroke-width="1.4" opacity=".6"/><circle cx="'+x+'" cy="'+(y+40)+'" r="2.6" fill="#c9a24a"/>'+
-      '<g class="face" data-k="adv-'+esc(a.id)+'" data-sp="'+({chron:.22,eng:.38,sci:.11}[a.cls]||.25)+'">'+
+      '<g class="face" data-k="adv-'+esc(a.id)+'" data-sp="'+({chron:.22,eng:.38,sci:.11,tailor:.3}[a.cls]||.25)+'">'+
       '<circle cx="'+x+'" cy="'+y+'" r="15" fill="#e3c9a6" stroke="#1d1209" stroke-width="1.2"/>'+eyeSvg(x-5,y+1,"l",2.9,3.2,1.6,1.3)+eyeSvg(x+5,y+1,"r",2.9,3.2,1.6,1.3)+
       '<path class="mth mth-n" d="M'+(x-4)+' '+(y+7)+'q4 3 8 0" stroke="#8a5a3a" stroke-width="1.2" fill="none"/>'+
       '<ellipse class="mth mth-o" cx="'+x+'" cy="'+(y+8.2)+'" rx="1.9" ry="2.3" fill="#5a2a1a" style="display:none"/></g>'+head+
@@ -1212,7 +1218,7 @@ function drawHall(){
 
   /* ---- adventurers' corner ---- */
   const S=404,TX=300,roster=advs.slice().sort((a,b)=>(a.createdAt||"").localeCompare(b.createdAt||"")||a.id.localeCompare(b.id));
-  const n=roster.length,xs=n===1?[TX]:n===2?[245,355]:roster.map((_,i)=>TX-90+180*i/(n-1));
+  const n=roster.length,xs=n===1?[TX]:n===2?[245,355]:n===3?roster.map((_,i)=>TX-90+180*i/(n-1)):roster.map((_,i)=>TX-123+246*i/(n-1));
   let corner='';
   roster.forEach((a,i)=>{const x=xs[i],c=chairFront(x,S),sit=activeOf(a).length===0;corner+=c.back+(sit?person(a,x,S-72)+legs(x,S,advColor(a)):'')+c.front});
   corner+='<ellipse cx="'+TX+'" cy="446" rx="98" ry="6" fill="#000" opacity=".45"/><g class="olt">'+astTable(TX,388,140,22)+'</g>';
