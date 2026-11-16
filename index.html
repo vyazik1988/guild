@@ -185,6 +185,9 @@ a{color:var(--sys)}
 .confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--danger);padding:8px 10px;color:var(--danger)}
 
 /* Modal (System window) */
+/* the hall and its objects are scenery: no text selection; opened books, cards and dialogs stay selectable */
+body{-webkit-user-select:none;user-select:none}
+.book,.sheet,.modal,.hv,#auth,input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;
   background:rgba(2,5,12,.72);backdrop-filter:blur(3px);
   padding:max(20px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
