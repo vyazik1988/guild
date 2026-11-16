@@ -286,7 +286,7 @@ a{color:var(--sys)}
 .stage .btn.wood[aria-pressed=true]{background:#c9a24a;color:#2b2116;border-color:#c9a24a}
 
 .atts{display:flex;flex-direction:column;gap:6px}
-.att{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);background:var(--panel2);border-radius:3px;color:var(--fg)}
+.att{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);background:var(--panel2);border-radius:3px;color:var(--fg)}
 .att a{overflow-wrap:anywhere;font-weight:600}
 .att>span:nth-child(2){overflow-wrap:anywhere}
 .att.up{opacity:.7}
@@ -301,7 +301,12 @@ a{color:var(--sys)}
 .ckp{margin:4px 0 8px 28px;padding:10px 12px;border:1px dashed var(--sys-dim);border-radius:3px;display:flex;flex-direction:column;gap:8px;background:var(--panel2)}
 hr.dash{border:none;border-top:2px dashed var(--line);margin:8px 0;width:100%}
 .links{display:flex;flex-direction:column;gap:6px}
-.lnk{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center}
+.lnk{display:flex;gap:6px;align-items:center}.lnk>:first-child{flex:1;min-width:0}.lnk>span:empty{display:none}
+.att-n,.lk-n{min-width:0;display:flex;flex-direction:column;gap:3px}.lk-n>input{width:100%}
+.anote{font-size:12.5px;line-height:1.35;color:var(--muted);font-style:italic;overflow-wrap:anywhere;white-space:pre-wrap;padding-left:8px;border-left:2px solid var(--line)}
+.anote.ed{font-style:normal;padding:0;border:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.anote.ed input{flex:1 1 160px;min-width:0}
+.ib.nb{font-size:14px}.ib.nb.on{color:var(--sys);border-color:var(--sys)}
+.vnote{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
 .lnk a{overflow-wrap:anywhere}
 .lnk a.ib{display:grid;place-items:center;text-decoration:none}
 #r-res{min-height:72px}
@@ -714,9 +719,9 @@ const CLASSES={
 const NO_CLASS={n:"Авантюрист",area:"",c:"#9aa8bf"};
 const MAX_ACTIVE=1, MAX_ADVS=4, DAILY_XP=15, STEP_XP=2;
 let draft=[],assetsApi=null,uploading={},pendingFiles=[];
-const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json",html:"text/html",htm:"text/html"};
+const ATT_TYPES={pdf:"application/pdf",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",gif:"image/gif",webp:"image/webp",svg:"image/svg+xml",mp4:"video/mp4",webm:"video/webm",txt:"text/plain",md:"text/markdown",csv:"text/csv",json:"application/json",html:"text/html",htm:"text/html",vpk:"application/octet-stream"};
 const ATT_ACCEPT=Object.keys(ATT_TYPES).map(e=>"."+e).join(",");
-const ATT_HINT="PDF, изображения, видео, HTML, TXT, MD, CSV, JSON · до 20 МБ";
+const ATT_HINT="PDF, изображения, видео, HTML, TXT, MD, CSV, JSON, VPK (моды Deadlock) · до 50 МБ";
 const isHtmlAtt=f=>/^html?$/.test(extOf(f.name||""))||f.type==="text/html";
 const attLink=f=>'<a href="'+esc(blobUrl(f.id))+'" target="_blank" rel="noopener"'+(isHtmlAtt(f)?' data-html="'+esc(f.id)+'" data-name="'+esc(f.name)+'"':'')+'>'+esc(f.name)+'</a>';
 /* HTML attachments open inside the tracker in an isolated frame: the file's scripts run but cannot reach the tracker or the login */
@@ -1370,7 +1375,30 @@ const fmtMin=m=>{m=+m||0;if(!m)return"";const h=Math.floor(m/60),r=m%60;return(h
 const pl=(n,f)=>{const a=n%10,b=n%100;return f[a===1&&b!==11?0:a>=2&&a<=4&&(b<12||b>14)?1:2]};
 const fmtLong=m=>{m=+m||0;if(!m)return"";const h=Math.floor(m/60),r=m%60;return "~ "+[h?h+" "+pl(h,["час","часа","часов"]):"",r?r+" "+pl(r,["минута","минуты","минут"]):""].filter(Boolean).join(" ")};
 const safeUrl=u=>/^https?:\/\//i.test(u)?u:"https://"+u;
-let pendingCheck=null,linkAdd={};
+let pendingCheck=null,linkAdd={},noteEdit=null;
+/* links are stored as plain strings, or {url,note} once they carry a comment */
+const lnUrl=l=>typeof l==="string"?l:(l&&l.url)||"",lnNote=l=>l&&typeof l==="object"?l.note||"":"";
+const noteBtn=(q,key,has)=>'<button class="ib nb'+(has?' on':'')+'" data-note="'+key+'" data-q="'+esc(q.id)+'" title="'+(has?"Изменить комментарий":"Добавить комментарий")+'" aria-label="'+(has?"Изменить комментарий":"Добавить комментарий")+'">✎</button>';
+function noteLine(q,key,note){
+  if(noteEdit&&noteEdit.qid===q.id&&noteEdit.key===key)return '<div class="anote ed"><input type="text" data-note-in="'+key+'" data-q="'+esc(q.id)+'" maxlength="300" value="'+esc(note)+'" placeholder="Комментарий: что это и зачем" aria-label="Комментарий"><button class="btn sm pri" data-note-ok="'+key+'" data-q="'+esc(q.id)+'">OK</button><button class="btn sm ghost" data-note-x>Отмена</button></div>';
+  return note?'<div class="anote">'+esc(note)+'</div>':'';
+}
+async function saveNote(qid,key,val){
+  const q=quests.find(x=>x.id===qid);noteEdit=null;if(document.activeElement)document.activeElement.blur();if(!q){refreshQuestViews();return}
+  const[kind,ix]=key.split(":"),i=+ix;val=(val||"").trim();
+  if(kind==="att"){const a=(q.attachments||[]).map(x=>Object.assign({},x));if(!a[i])return refreshQuestViews();if(val)a[i].note=val;else delete a[i].note;
+    await patch(q,{attachments:a},val?"Комментарий к файлу сохранён.":"Комментарий убран.")}
+  else{const l=(q.links||[]).slice();if(l[i]==null)return refreshQuestViews();const u=lnUrl(l[i]);l[i]=val?{url:u,note:val}:u;
+    await patch(q,{links:l},val?"Комментарий к ссылке сохранён.":"Комментарий убран.")}
+  refreshQuestViews();
+}
+function bindNotes(root){
+  root.querySelectorAll("[data-note]").forEach(b=>b.onclick=()=>{noteEdit={qid:b.dataset.q,key:b.dataset.note};refreshQuestViews();
+    setTimeout(()=>{const i=document.querySelector('[data-note-in="'+b.dataset.note+'"]');if(i){i.focus();i.select()}},0)});
+  root.querySelectorAll("[data-note-ok]").forEach(b=>b.onclick=()=>{const i=root.querySelector('[data-note-in="'+b.dataset.noteOk+'"]');saveNote(b.dataset.q,b.dataset.noteOk,i?i.value:"")});
+  root.querySelectorAll("[data-note-x]").forEach(b=>b.onclick=()=>{noteEdit=null;if(document.activeElement)document.activeElement.blur();refreshQuestViews()});
+  root.querySelectorAll("[data-note-in]").forEach(i=>i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();saveNote(i.dataset.q,i.dataset.noteIn,i.value)}else if(e.key==="Escape"){e.preventDefault();e.stopPropagation();noteEdit=null;i.blur();refreshQuestViews()}});
+}
 function segBar(q){
   const p=progressOf(q);
   if(q.kind==="checklist"){const it=q.items||[],n=it.filter(i=>i.d).length;
@@ -1421,16 +1449,16 @@ function questBody(q,sheetMode){
   const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite);
   body+='<h3 class="sec">Документы · '+atts.length+'</h3><div class="atts">'+
     atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
-      attLink(f)+'<span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
-      (canAtt?'<button class="ib rm" data-att-rm="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
+      '<div class="att-n">'+attLink(f)+noteLine(q,"att:"+i,f.note||"")+'</div><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      (canAtt?noteBtn(q,"att:"+i,!!f.note)+'<button class="ib rm" data-att-rm="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
     ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
     (!atts.length&&!ups.length?'<div class="small muted">'+(canAtt?"Документов нет. Прикрепи файл кнопкой ниже или перетащи его на бланк.":"Документов нет.")+'</div>':'')+'</div>'+
     (canAtt?'<div class="row"><label class="btn sm" style="flex:0 0 auto;cursor:pointer">+ Прикрепить документ<input type="file" id="att-in" multiple accept="'+ATT_ACCEPT+'" hidden></label><span class="small muted" style="flex:1 1 200px">'+ATT_HINT+'</span></div>':'')+
     '<div id="attbox"></div>';
   const links=q.links||[],adding=open&&linkAdd[q.id];
   body+='<h3 class="sec">Ссылки · '+links.length+'</h3><div class="links">'+
-    links.map((l,i)=>open?'<div class="lnk"><input type="url" data-link="'+i+'" value="'+esc(l)+'" placeholder="https://..." aria-label="Ссылка '+(i+1)+'"><a class="ib" href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener" aria-label="Открыть ссылку">↗</a><button class="ib rm" data-link-rm="'+i+'" aria-label="Удалить ссылку">×</button></div>':
-      '<div class="lnk"><a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a></div>').join("")+
+    links.map((l,i)=>open?'<div class="lnk"><div class="lk-n"><input type="url" data-link="'+i+'" value="'+esc(lnUrl(l))+'" placeholder="https://..." aria-label="Ссылка '+(i+1)+'">'+noteLine(q,"link:"+i,lnNote(l))+'</div><a class="ib" href="'+esc(safeUrl(lnUrl(l)))+'" target="_blank" rel="noopener" aria-label="Открыть ссылку">↗</a>'+noteBtn(q,"link:"+i,!!lnNote(l))+'<button class="ib rm" data-link-rm="'+i+'" aria-label="Удалить ссылку">×</button></div>':
+      '<div class="lnk"><div class="lk-n"><a href="'+esc(safeUrl(lnUrl(l)))+'" target="_blank" rel="noopener">'+esc(lnUrl(l))+'</a>'+noteLine(q,"link:"+i,lnNote(l))+'</div>'+(canWrite?noteBtn(q,"link:"+i,!!lnNote(l)):'')+'</div>').join("")+
     (adding?'<div class="lnk"><input type="url" id="link-new" placeholder="https://..." aria-label="Новая ссылка"><span></span><button class="ib rm" id="link-new-x" aria-label="Не добавлять ссылку">×</button></div>':'')+
     (!links.length&&!adding?'<div class="small muted">Ссылок нет.</div>':'')+'</div>'+
     (open?'<div class="row"><button class="btn sm" id="link-add" style="flex:0 0 auto">+ Добавить ссылку</button></div>':'');
@@ -1517,13 +1545,14 @@ function bindQuest(root,q){
     if(jp)jp.onclick=()=>jmove(-1);if(jn)jn.onclick=()=>jmove(1);
     if(y){y.onclick=()=>confirmCheck(true);root.querySelector("#ck-no").onclick=()=>confirmCheck(false);root.querySelector("#ck-back").onclick=()=>{pc.step="form";refreshQuestViews()}}
   }
-  root.querySelectorAll("[data-link]").forEach(inp=>inp.onchange=()=>{const cur=live(),l=(cur.links||[]).slice(),i=+inp.dataset.link,v=inp.value.trim();if(v)l[i]=v;else l.splice(i,1);patch(cur,{links:l},v?"Ссылка обновлена.":"Ссылка удалена.")});
+  root.querySelectorAll("[data-link]").forEach(inp=>inp.onchange=()=>{const cur=live(),l=(cur.links||[]).slice(),i=+inp.dataset.link,v=inp.value.trim(),nt=lnNote(l[i]);if(v)l[i]=nt?{url:v,note:nt}:v;else l.splice(i,1);patch(cur,{links:l},v?"Ссылка обновлена.":"Ссылка удалена.")});
   root.querySelectorAll("[data-link-rm]").forEach(b=>b.onclick=()=>{const cur=live(),l=(cur.links||[]).slice();l.splice(+b.dataset.linkRm,1);patch(cur,{links:l},"Ссылка удалена.")});
   const la=root.querySelector("#link-add");if(la)la.onclick=()=>{linkAdd[q.id]=true;refreshQuestViews();setTimeout(()=>{const n=document.getElementById("link-new");n&&n.focus()},0)};
   const ln=root.querySelector("#link-new");
   if(ln){let done=false;const commit=()=>{if(done)return;const v=ln.value.trim();if(!v)return;done=true;linkAdd[q.id]=false;const cur=live();patch(cur,{links:(cur.links||[]).concat(v)},"Ссылка добавлена.").then(refreshQuestViews)};
     ln.onchange=commit;ln.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commit()}};
     root.querySelector("#link-new-x").onclick=()=>{linkAdd[q.id]=false;refreshQuestViews()}}
+  bindNotes(root);
   const rr=root.querySelector("#r-res");if(rr)rr.onchange=()=>patch(live(),{result:rr.value.trim()},"Результат сохранён.");
   root.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>questAct(q,b.dataset.act));
 }
@@ -1956,13 +1985,13 @@ function aeExtraHTML(q){
   const atts=q.attachments||[],ups=uploading[q.id]||[],canAtt=!!(assetsApi&&canWrite),links=q.links||[];
   return '<div class="bk-h s">Документы · '+atts.length+'</div><div class="atts">'+
     atts.map((f,i)=>'<div class="att">'+(/^image\//.test(f.type||"")?'<img class="athumb" src="'+esc(blobUrl(f.id))+'" alt="">':'<span class="aico">'+esc(extOf(f.name).toUpperCase().slice(0,4)||"FILE")+'</span>')+
-      attLink(f)+'<span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
-      (canAtt?'<button class="ib rm" data-ae-att="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
+      '<div class="att-n">'+attLink(f)+noteLine(q,"att:"+i,f.note||"")+'</div><span class="small muted">'+fmtSize(+f.size||0)+'</span>'+
+      (canAtt?noteBtn(q,"att:"+i,!!f.note)+'<button class="ib rm" data-ae-att="'+i+'" aria-label="Открепить '+esc(f.name)+'">×</button>':'')+'</div>').join("")+
     ups.map(n=>'<div class="att up"><span class="aico">...</span><span>'+esc(n)+'</span><span class="small muted">загружаю</span></div>').join("")+
     (!atts.length&&!ups.length?'<div class="small muted">Документов нет.</div>':'')+'</div>'+
     (canAtt?'<label class="btn sm" style="align-self:flex-start;cursor:pointer">+ Прикрепить документ<input type="file" id="ae-att" multiple accept="'+ATT_ACCEPT+'" hidden></label><span class="small muted">'+ATT_HINT+'</span>':'')+
     '<div class="bk-h s">Ссылки · '+links.length+'</div><div class="links">'+
-    links.map((l,i)=>'<div class="lnk"><a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a><span></span><button class="ib rm" data-ae-link="'+i+'" aria-label="Удалить ссылку">×</button></div>').join("")+
+    links.map((l,i)=>'<div class="lnk"><div class="lk-n"><a href="'+esc(safeUrl(lnUrl(l)))+'" target="_blank" rel="noopener">'+esc(lnUrl(l))+'</a>'+noteLine(q,"link:"+i,lnNote(l))+'</div>'+noteBtn(q,"link:"+i,!!lnNote(l))+'<button class="ib rm" data-ae-link="'+i+'" aria-label="Удалить ссылку">×</button></div>').join("")+
     (!links.length?'<div class="small muted">Ссылок нет.</div>':'')+'</div>'+
     '<div class="lnk"><input type="url" id="ae-link" placeholder="https://..." aria-label="Новая ссылка"><span></span><button class="btn sm" id="ae-link-add">+ Добавить ссылку</button></div><div id="ae-confirm"></div>';
 }
@@ -1974,6 +2003,7 @@ function bindAeExtra(box){
     c.querySelector("#ae-att-no").onclick=()=>c.innerHTML="";c.querySelector("#ae-att-yes").onclick=()=>removeAttachment(q.id,f)});
   box.querySelectorAll("[data-ae-link]").forEach(b=>b.onclick=()=>{const l=(q.links||[]).slice();l.splice(+b.dataset.aeLink,1);patch(q,{links:l},"Ссылка удалена.")});
   const inp=box.querySelector("#ae-link"),add=()=>{const v=inp.value.trim();if(!v){inp.focus();return}inp.value="";inp.blur();patch(q,{links:(q.links||[]).concat(v)},"Ссылка добавлена.")};
+  bindNotes(box);
   box.querySelector("#ae-link-add").onclick=add;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add()}};
 }
 function renderAeExtra(){
@@ -2259,8 +2289,8 @@ const SPREADS={
       const idx=done.findIndex(x=>x.id===q.id),pg=Math.max(0,Math.floor(idx/14)),a=qAdv(q);
       const items=q.kind==="checklist"?'<div class="bk-h s">Пункты</div>'+(q.items||[]).map(it=>'<div class="bk-item'+(it.d?" done":"")+'"><span>'+(it.d?"✓":"○")+'</span><span>'+esc(it.t)+'</span><i>'+[fmtLong(it.min),it.at?ru(it.at):""].filter(Boolean).join(" · ")+'</i></div>').join(""):
         q.kind==="counter"?'<div class="small">Прогресс: '+(+q.current||0)+' / '+(+q.target||0)+' '+esc(q.unit||"")+'</div>':'';
-      const links=(q.links||[]).map(l=>'<a href="'+esc(safeUrl(l))+'" target="_blank" rel="noopener">'+esc(l)+'</a>').join("<br>");
-      const docs=(q.attachments||[]).map(attLink).join("<br>");
+      const links=(q.links||[]).map(l=>'<div class="vnote"><a href="'+esc(safeUrl(lnUrl(l)))+'" target="_blank" rel="noopener">'+esc(lnUrl(l))+'</a>'+(lnNote(l)?'<div class="anote">'+esc(lnNote(l))+'</div>':'')+'</div>').join("");
+      const docs=(q.attachments||[]).map(f=>'<div class="vnote">'+attLink(f)+(f.note?'<div class="anote">'+esc(f.note)+'</div>':'')+'</div>').join("");
       return{left:'<div class="bk-h">Заказ</div><div class="bk-qt"><span class="rk rk-'+esc(q.rank)+'">'+esc(q.rank)+'</span><b>'+esc(q.title)+'</b></div>'+(q.desc?'<p class="desc">'+esc(q.desc)+'</p>':'')+
           '<table class="bk-t">'+kvRows([["Исполнитель",a?advLabel(a):"-"],["Тип",KIND[q.kind]],["Награда",(RANK_XP[q.rank]||10)+" XP"],["Создан",q.createdAt?ru(q.createdAt.slice(0,10)):"-"],["Начат",q.takenAt?ru(q.takenAt.slice(0,10)):"-"],q.status==="review"?["Сдан",q.submittedAt?ru(q.submittedAt.slice(0,10)):"-"]:["Выполнен",(q.doneAt?ru(q.doneAt.slice(0,10)):"-")+(q.autoConfirmed?" · подтверждён автоматически":"")]].concat(q.doneMin?[["Время на сдачу",fmtLong(q.doneMin)]]:[]))+'</table>'+
           (q.status==="review"?'<div class="pend-plate">Ожидает подтверждения</div>'+(canWrite?'<div class="bk-review"><label class="f">Замечание (если на доработку)<input type="text" id="bk-rnote" maxlength="200"></label><div class="bk-acts"><button class="btn pri" id="bk-ok" data-id="'+esc(q.id)+'">Подтвердить</button><button class="btn ret" id="bk-rework" data-id="'+esc(q.id)+'">На доработку</button></div></div>':''):'')+(q.note?'<p class="small">Замечание: '+esc(q.note)+'</p>':''),
@@ -2502,7 +2532,7 @@ async function saveDaily(){
 function checkFile(f){
   const ext=extOf(f.name);
   if(!ATT_TYPES[ext])return "Формат ."+ext+" не поддерживается: сохрани файл в PDF и прикрепи снова.";
-  const max=ext==="svg"?2:20;if(f.size>max*1048576)return "Файл «"+f.name+"» больше "+max+" МБ.";
+  const max=ext==="svg"?2:50;if(f.size>max*1048576)return "Файл «"+f.name+"» больше "+max+" МБ.";
   if(!f.size)return "Файл «"+f.name+"» пустой.";
   return "";
 }
