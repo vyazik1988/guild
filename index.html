@@ -1351,7 +1351,7 @@ function questBody(q,sheetMode){
   if(q.kind==="counter"){
     body+='<div class="small muted">'+(+q.current||0)+' из '+(+q.target||0)+' '+esc(q.unit||"")+'</div>';
     const pcc=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="count"?pendingCheck:null;
-    if(editable)body+=pcc?checkPanel():'<div class="row"><label class="f" style="flex:0 1 120px">Сделано<input type="number" id="c-delta" min="1" placeholder="12"></label><label class="f">Заметка<input type="text" id="c-note" maxlength="140" placeholder="Например: глава 4"></label><button class="btn pri" id="c-add" style="flex:0 0 auto">Записать</button></div>';
+    if(editable)body+=pcc?checkPanel():'<div class="row"><label class="f" style="flex:0 1 120px">Сделано<input type="number" id="c-delta" min="1"'+(q.target?' max="'+Math.max(1,(+q.target||0)-(+q.current||0))+'"':'')+' placeholder="12"></label><label class="f">Заметка<input type="text" id="c-note" maxlength="140" placeholder="Например: глава 4"></label><button class="btn pri" id="c-add" style="flex:0 0 auto">Записать</button></div>';
   }
   if(q.kind==="checklist")body+='<div>'+(q.items||[]).map((it,i)=>{
     const pend=pendingCheck&&pendingCheck.qid===q.id&&pendingCheck.type==="item"&&pendingCheck.i===i;
@@ -2485,6 +2485,7 @@ async function confirmCheck(addReport){
   const cur=quests.find(x=>x.id===pc.qid);if(!cur){refreshQuestViews();return}
   const mn=(parseInt(pc.h,10)||0)*60+(parseInt(pc.m,10)||0),dd=pc.d||today(),jd=pc.jd||dd;
   if(pc.type==="count"){
+    if(cur.target)pc.n=Math.min(pc.n,Math.max(0,(+cur.target||0)-(+cur.current||0)));if(!(pc.n>0)){toast("Цель уже достигнута.");refreshQuestViews();return}
     const total=(+cur.current||0)+pc.n,h=pushHist(cur,"+"+pc.n,pc.note);const last=h[h.length-1];last.day=dd;if(mn)last.min=mn;
     refreshQuestViews();
     await patch(cur,{current:total,history:h},"Прогресс записан: "+total+" / "+cur.target+" "+(cur.unit||"")+".");
@@ -2556,6 +2557,9 @@ async function patch(q,data,msg){try{await db.doc("quests/"+q.id).update(Object.
 function pushHist(q,delta,note){const h=(q.history||[]).slice(-199);h.push({at:new Date().toISOString(),by:me?.id||null,delta:String(delta),note:note||""});return h}
 async function addCount(q){
   const n=parseInt($("#c-delta").value,10);if(!(n>0)){toast("Введи, сколько сделано, числом.");return}
+  const left=Math.max(0,(+q.target||0)-(+q.current||0));
+  if(!left){toast("Цель уже достигнута: "+q.current+" / "+q.target+" "+(q.unit||"")+". Можно сдавать заказ.");return}
+  if(n>left){toast("Осталось всего "+left+" "+(q.unit||"")+" из "+q.target+": больше записать нельзя.");$("#c-delta").value=left;return}
   pendingCheck={type:"count",qid:q.id,n,note:$("#c-note").value.trim(),unit:q.unit||"",step:"form",h:"0",m:"0",d:today()};refreshQuestViews();
 }
 async function toggleItem(q,i,val){
