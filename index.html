@@ -1336,7 +1336,7 @@ function drawHall(){
   '<circle cx="740" cy="40" r="2" fill="#8a6a2a"/><circle cx="940" cy="40" r="2" fill="#8a6a2a"/>'+
   '<text x="840" y="47" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#1a110b">ДОСКА ЗАКАЗОВ</text>'+
   '<text x="840" y="46" text-anchor="middle" font-family="Russo One" font-size="16" letter-spacing="3" fill="#e6c88a">ДОСКА ЗАКАЗОВ</text></g></g>'+
-  noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+(XMAS?xmasTree(554,476):'')+
+  noraG(quests.filter(q=>isRat(q)&&q.status==="active").length)+(XMAS?'<g transform="translate(554 444) scale(.88) translate(-554 -444)">'+xmasTree(554,444)+'</g>':'')+
   // adventurers' tables (hot)
   '<g class="hot" tabindex="0" role="button" data-open="advs" aria-label="Хронометр, стол авантюристов: свободно '+free.length+', на заданиях '+busy+'">'+
   corner+'</g>'+
